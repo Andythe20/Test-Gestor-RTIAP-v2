@@ -11,8 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('sensors', function (Blueprint $table) {
+        Schema::create('sensores', function (Blueprint $table) {
             $table->id();
+            $table->string('codigo_serie')->unique();
+            $table->foreignId('sistema_id')->constrained('sistemas')->onDelete('cascade');
+            $table->string('ubicacion'); // Ej: "Fondo derecha"
+            $table->float('valor_actual'); // Ej: -5.4
             $table->timestamps();
         });
     }

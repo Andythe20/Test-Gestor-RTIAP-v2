@@ -3,8 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Tenant;
-use App\Models\Sucursal;
+use App\Models\Empresa;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
 
 class SuperAdminController extends Controller
 {
@@ -14,9 +15,7 @@ class SuperAdminController extends Controller
         // Esto consulta la BD Central (Landlord)
         $tenants = Tenant::all();
 
-        return Inertia::render('SuperAdmin/Index', [
-            'tenants' => $tenants
-        ]);
+        return Inertia::render('SuperAdmin/Index', ['tenants' => $tenants]);
     }
 
     // Vista de Detalle: Ver qué tiene un Cliente por dentro
@@ -25,18 +24,21 @@ class SuperAdminController extends Controller
         // 1. Buscamos al tenant en la BD Central
         $tenant = Tenant::findOrFail($id);
 
-        // 2. ¡MAGIA! Nos conectamos a SU base de datos
-        $tenant->makeCurrent();
+        // 2. Le decimos a Laravel explícitamente qué base de datos usar
+        config(['database.connections.tenant.database' => $tenant->database_name]);
 
-        // 3. Ahora 'Sucursal' busca en la BD del cliente, no en la central
-        $sucursales = Sucursal::with('sistemas.sensores')->get();
+        // 3. Purgamos la conexión 'tenant' vieja (que apuntaba a null)
+        DB::purge('tenant');
 
-        // 4. (Opcional) Volver a la central, aunque al terminar la request Laravel limpia solo.
-        // $tenant->forgetCurrent();
+        // 4. Reconectamos con la nueva configuración
+        DB::reconnect('tenant');
+
+        // 5. Ahora podemos usar los modelos normalmente, y estos usarán la BD del tenant
+        $empresas = Empresa::with('sucursales.sistemas.sensores')->get();
 
         return Inertia::render('SuperAdmin/Show', [
             'tenant' => $tenant,
-            'sucursales' => $sucursales
+            'empresas' => $empresas
         ]);
     }
 }

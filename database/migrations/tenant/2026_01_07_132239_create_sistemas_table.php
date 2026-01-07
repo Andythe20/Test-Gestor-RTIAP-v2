@@ -13,6 +13,9 @@ return new class extends Migration
     {
         Schema::create('sistemas', function (Blueprint $table) {
             $table->id();
+            $table->string('nombre'); // Ej: "Túnel 01: Congelados Carnes"
+            $table->foreignId('sucursal_id')->constrained('sucursales')->onDelete('cascade');
+            $table->string('direccion'); // Ej: "Av. Siempre Viva 123, Ciudad, País"
             $table->timestamps();
         });
     }

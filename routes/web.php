@@ -1,7 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\SuperAdminController;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+// Rutas del Landlord (Super Admin)
+Route::get('/', [SuperAdminController::class, 'index'])->name('admin.index');
+Route::get('/admin/tenant/{id}', [SuperAdminController::class, 'show'])->name('admin.tenant.show');

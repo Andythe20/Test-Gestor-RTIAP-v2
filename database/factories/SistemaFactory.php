@@ -17,7 +17,11 @@ class SistemaFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'id' => fake()->unique()->randomNumber(),
+            'nombre' => 'Túnel ' . fake()->randomNumber(),
+            'direccion' => fake()->address(),
+            'sucursal_id' => \App\Models\Sucursal::factory(),
+            'created_at' => now(),
         ];
     }
 }

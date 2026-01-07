@@ -10,6 +10,9 @@ class Sistema extends Model
     /** @use HasFactory<\Database\Factories\SistemaFactory> */
     use HasFactory;
 
+    protected $table = 'sistemas';
+    protected $connection = 'tenant';
+
     public function sucursal()
     {
         return $this->belongsTo(Sucursal::class);

@@ -17,7 +17,11 @@ class SucursalFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'id' => fake()->unique()->randomNumber(),
+            'empresa_id' => \App\Models\Empresa::factory(),
+            'nombre' => 'Sucursal ' . fake()->city(),
+            'direccion' => fake()->address(),
+            'created_at' => now(),
         ];
     }
 }

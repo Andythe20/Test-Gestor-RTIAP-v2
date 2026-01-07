@@ -10,6 +10,9 @@ class Empresa extends Model
     /** @use HasFactory<\Database\Factories\EmpresaFactory> */
     use HasFactory;
 
+    protected $table = 'empresas';
+    protected $connection = 'tenant';
+
     public function sucursales()
     {
         return $this->hasMany(Sucursal::class);

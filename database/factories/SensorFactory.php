@@ -17,7 +17,12 @@ class SensorFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'id' => fake()->unique()->randomNumber(),
+            'codigo_serie' => fake()->unique()->bothify('SN-########'),
+            'sistema_id' => \App\Models\Sistema::factory(),
+            'ubicacion' => fake()->randomElement(['Fondo derecha', 'Fondo izquierda', 'Frente central', 'Lateral derecha', 'Lateral izquierda']),
+            'valor_actual' => fake()->randomFloat(2, -20, 50),
+            'created_at' => now(),
         ];
     }
 }

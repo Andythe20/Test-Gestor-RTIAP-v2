@@ -10,6 +10,9 @@ class Sensor extends Model
     /** @use HasFactory<\Database\Factories\SensorFactory> */
     use HasFactory;
 
+    protected $table = 'sensores';
+    protected $connection = 'tenant';
+
     public function sistema()
     {
         return $this->belongsTo(Sistema::class);

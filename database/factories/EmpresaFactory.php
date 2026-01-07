@@ -17,7 +17,11 @@ class EmpresaFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'id' => fake()->unique()->randomNumber(),
+            'nombre' => fake()->company(),
+            'direccion' => fake()->address(),
+            'correo_electronico' => fake()->unique()->companyEmail(),
+            'created_at' => now(),
         ];
     }
 }
