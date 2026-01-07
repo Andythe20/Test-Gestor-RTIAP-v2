@@ -16,10 +16,6 @@ class TenantProvisioner
             $tenant->database = 'tenant' . $tenant->id;
         }
 
-        if (!preg_match('/^tenant\d+$/', $tenant->database)) {
-            throw new \RuntimeException("db_name invalido");
-        }
-
         $dbName = $tenant->database;
 
         if (empty($tenant->db_username)) {
