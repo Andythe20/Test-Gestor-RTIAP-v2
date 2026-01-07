@@ -14,6 +14,13 @@ use Spatie\Multitenancy\Actions\MigrateTenantAction;
 use Spatie\Multitenancy\Models\Tenant;
 
 return [
+    'tenant_finder' => Spatie\Multitenancy\TenantFinder\DomainTenantFinder::class, // Detectar por dominio
+
+    'tenant_database_connection_name' => 'tenant', // Nombre de la conexión dinámica
+
+    'landlord_database_connection_name' => 'landlord', // Nombre de la conexión central
+
+    'current_tenant_container_key' => 'currentTenant',
     /*
      * This class is responsible for determining which tenant should be current
      * for the given request.
