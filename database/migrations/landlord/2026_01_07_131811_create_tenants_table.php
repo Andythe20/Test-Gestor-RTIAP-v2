@@ -27,6 +27,7 @@ return new class extends Migration {
             $table->timestamps();
         });
     }
+    // Correr migrate:fresh !!
 
     public function down(): void
     {
