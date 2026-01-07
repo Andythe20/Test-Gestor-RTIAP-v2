@@ -19,22 +19,20 @@ class DemoReset extends Command
         }
 
 
-        if ($this->option('drop-tenants')) {
-            $rows = DB::connection('provisioner')->select("SHOW DATABASES LIKE 'tenant%'");
+        $rows = DB::connection('provisioner')->select("SHOW DATABASES LIKE 'tenant%'");
 
-            foreach ($rows as $row) {
-                $dbName = array_values((array) $row)[0] ?? null;
+        foreach ($rows as $row) {
+            $dbName = array_values((array) $row)[0] ?? null;
 
-                if (!is_string($dbName)) {
-                    continue;
-                }
-
-                if (!preg_match('/^tenant\d+$/', $dbName)) {
-                    continue;
-                }
-
-                DB::connection('provisioner')->statement("DROP DATABASE IF EXISTS `{$dbName}`");
+            if (!is_string($dbName)) {
+                continue;
             }
+
+            if (!preg_match('/^tenant\d+$/', $dbName)) {
+                continue;
+            }
+
+            DB::connection('provisioner')->statement("DROP DATABASE IF EXISTS `{$dbName}`");
         }
 
         $this->callSilent('optimize:clear');
