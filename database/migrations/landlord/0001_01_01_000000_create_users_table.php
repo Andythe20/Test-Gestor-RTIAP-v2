@@ -1,5 +1,7 @@
 <?php
 
+// Correr con php artisan migrate:fresh --database=landlord --path=database/migrations/landlord
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
