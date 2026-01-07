@@ -17,7 +17,11 @@ class EmpleadoFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'id' => fake()->unique()->randomNumber(),
+            'nombre' => fake()->firstName(),
+            'apellido' => fake()->lastName(),
+            'correo_electronico' => fake()->unique()->companyEmail(),
+            'created_at' => now(),
         ];
     }
 }

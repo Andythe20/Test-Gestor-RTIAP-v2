@@ -17,7 +17,11 @@ class TarjetaFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'id' => fake()->unique()->randomNumber(),
+            'numero_tarjeta' => fake()->unique()->creditCardNumber(),
+            'nombre_titular' => fake()->name(),
+            'fecha_expiracion' => fake()->dateTimeBetween('now', '+5 years')->format('Y-m-d'),
+            'created_at' => now(),
         ];
     }
 }

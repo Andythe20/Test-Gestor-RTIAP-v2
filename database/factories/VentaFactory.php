@@ -17,7 +17,13 @@ class VentaFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'id' => fake()->unique()->randomNumber(),
+            'empleado_id' => \App\Models\Empleado::factory(),
+            'producto_id' => \App\Models\Producto::factory(),
+            'tarjeta_id' => \App\Models\Tarjeta::factory(),
+            'total' => fake()->numberBetween(1000, 100000),
+            'created_at' => now(),
+
         ];
     }
 }
