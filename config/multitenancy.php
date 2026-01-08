@@ -14,13 +14,6 @@ use Spatie\Multitenancy\Actions\MigrateTenantAction;
 use Spatie\Multitenancy\Models\Tenant;
 
 return [
-    'tenant_finder' => Spatie\Multitenancy\TenantFinder\DomainTenantFinder::class, // Detectar por dominio
-
-    'tenant_database_connection_name' => 'tenant', // Nombre de la conexión dinámica
-
-    'landlord_database_connection_name' => 'landlord', // Nombre de la conexión central
-
-    'current_tenant_container_key' => 'currentTenant',
     /*
      * This class is responsible for determining which tenant should be current
      * for the given request.
@@ -28,7 +21,7 @@ return [
      * This class should extend `Spatie\Multitenancy\TenantFinder\TenantFinder`
      *
      */
-    'tenant_finder' => null,
+    'tenant_finder' => Spatie\Multitenancy\TenantFinder\DomainTenantFinder::class,
 
     /*
      * These fields are used by tenant:artisan command to match one or more tenant.
@@ -54,7 +47,7 @@ return [
      * It must  extend `Spatie\Multitenancy\Models\Tenant::class` or
      * implement `Spatie\Multitenancy\Contracts\IsTenant::class` interface
      */
-    'tenant_model' => Tenant::class,
+    'tenant_model' => \App\Models\Tenant::class,
 
     /*
      * If there is a current tenant when dispatching a job, the id of the current tenant
@@ -73,7 +66,7 @@ return [
     /*
      * The connection name to reach the landlord database.
      */
-    'landlord_database_connection_name' => null,
+    'landlord_database_connection_name' => 'landlord',
 
     /*
      * This key will be used to associate the current tenant in the context

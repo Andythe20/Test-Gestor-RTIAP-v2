@@ -1,82 +1,331 @@
 <script setup>
 import { ref } from "vue";
-import { Link } from "@inertiajs/vue3";
+import { Link, useForm, usePage } from "@inertiajs/vue3";
 import {
     faServer,
     faArrowRight,
     faPlus,
+    faCheck,
+    faTimes,
+    faClock,
+    faDatabase,
 } from "@fortawesome/free-solid-svg-icons";
 
-// IMPORTAMOS EL COMPONENTE FORMULARIO
-import CreateTenantForm from "./Partials/CreateTenantForm.vue";
-import CreateCompanyForm from "./Partials/CreateCompanyForm.vue";
+const props = defineProps({ tenants: Array });
 
-defineProps({ tenants: Array });
+const page = usePage();
 
-// Estado para controlar la visibilidad del modal
-const showCreateModal = ref(false);
-const showCreateCompanyModal = ref(false);
-const tenantData = ref(null);
+const showCreateForm = ref(false);
 
-const onTenantCreated = (data) => {
-    tenantData.value = data;
-    showCreateCompanyModal.value = true;
+const form = useForm({
+    name: "",
+    domain: "",
+});
+
+const submitForm = () => {
+    form.post("/admin/tenants", {
+        onSuccess: () => {
+            showCreateForm.value = false;
+            form.reset();
+        },
+    });
+};
+
+const getStatusIcon = (status) => {
+    switch (status) {
+        case "active":
+            return faCheck;
+        case "failed":
+            return faTimes;
+        default:
+            return faClock;
+    }
+};
+
+const getStatusColor = (status) => {
+    switch (status) {
+        case "active":
+            return "text-green-600 bg-green-100";
+        case "failed":
+            return "text-red-600 bg-red-100";
+        default:
+            return "text-yellow-600 bg-yellow-100";
+    }
 };
 </script>
 
 <template>
-    <div class="min-h-screen bg-gray-900 text-white p-8 relative">
-        <div class="max-w-4xl mx-auto">
-            <div class="flex justify-between items-end mb-8">
-                <div>
-                    <h1 class="text-4xl font-bold mb-2">
-                        📡 Centro de Comando
-                    </h1>
-                    <p class="text-gray-400">
-                        Administración global de clientes.
+    <div class="min-h-screen bg-gray-50 py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- Header -->
+            <div class="bg-white shadow-sm rounded-lg p-6 mb-8">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h1
+                            class="text-3xl font-bold text-gray-900 flex items-center"
+                        >
+                            <font-awesome-icon
+                                :icon="faServer"
+                                class="mr-3 text-blue-600"
+                            />
+                            Gestión de Tenants
+                        </h1>
+                        <p class="text-gray-600 mt-2">
+                            Administra los clientes y sus bases de datos
+                            dedicadas
+                        </p>
+                    </div>
+                    <button
+                        @click="showCreateForm = !showCreateForm"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors"
+                    >
+                        <font-awesome-icon :icon="faPlus" class="mr-2" />
+                        Nuevo Tenant
+                    </button>
+                </div>
+            </div>
+
+            <!-- Flash Messages -->
+            <div
+                v-if="page?.props?.flash?.success"
+                class="bg-green-50 border border-green-200 rounded-lg p-4 mb-8"
+            >
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <font-awesome-icon
+                            :icon="faCheck"
+                            class="h-5 w-5 text-green-400"
+                        />
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-green-800">
+                            {{ page.props.flash.success }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                v-if="page?.props?.flash?.error"
+                class="bg-red-50 border border-red-200 rounded-lg p-4 mb-8"
+            >
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <font-awesome-icon
+                            :icon="faTimes"
+                            class="h-5 w-5 text-red-400"
+                        />
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-red-800">
+                            {{ page.props.flash.error }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Create Form -->
+            <div
+                v-if="showCreateForm"
+                class="bg-white shadow-sm rounded-lg p-6 mb-8"
+            >
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">
+                    Crear Nuevo Tenant
+                </h2>
+                <form @submit.prevent="submitForm" class="space-y-4">
+                    <div>
+                        <label
+                            for="name"
+                            class="block text-sm font-medium text-gray-700"
+                        >
+                            Nombre del Cliente
+                        </label>
+                        <input
+                            id="name"
+                            v-model="form.name"
+                            type="text"
+                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="Ej: Walmart Chile"
+                            required
+                        />
+                        <div
+                            v-if="form.errors.name"
+                            class="text-red-600 text-sm mt-1"
+                        >
+                            {{ form.errors.name }}
+                        </div>
+                    </div>
+
+                    <div>
+                        <label
+                            for="domain"
+                            class="block text-sm font-medium text-gray-700"
+                        >
+                            Dominio
+                        </label>
+                        <input
+                            id="domain"
+                            v-model="form.domain"
+                            type="text"
+                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="Ej: walmart.localhost"
+                            required
+                        />
+                        <div
+                            v-if="form.errors.domain"
+                            class="text-red-600 text-sm mt-1"
+                        >
+                            {{ form.errors.domain }}
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end space-x-3">
+                        <button
+                            type="button"
+                            @click="showCreateForm = false"
+                            class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg transition-colors"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="submit"
+                            :disabled="form.processing"
+                            class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg transition-colors flex items-center"
+                        >
+                            <font-awesome-icon
+                                v-if="form.processing"
+                                :icon="faClock"
+                                class="mr-2 animate-spin"
+                            />
+                            {{
+                                form.processing ? "Creando..." : "Crear Tenant"
+                            }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Tenants List -->
+            <div class="bg-white shadow-sm rounded-lg overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-xl font-semibold text-gray-900">
+                        Tenants Registrados ({{ tenants.length }})
+                    </h2>
+                </div>
+
+                <div
+                    v-if="tenants.length === 0"
+                    class="p-8 text-center text-gray-500"
+                >
+                    <font-awesome-icon
+                        :icon="faDatabase"
+                        class="text-4xl mb-4 text-gray-300"
+                    />
+                    <p>No hay tenants registrados aún.</p>
+                    <p class="text-sm">
+                        Haz clic en "Nuevo Tenant" para crear el primero.
                     </p>
                 </div>
 
-                <button
-                    @click="showCreateModal = true"
-                    class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-6 rounded-lg shadow-lg flex items-center gap-2 transition transform hover:scale-105"
-                >
-                    <font-awesome-icon :icon="faPlus" />
-                    Nuevo Cliente
-                </button>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div
-                    v-for="tenant in tenants"
-                    :key="tenant.id"
-                    class="bg-gray-800 border border-gray-700 p-6 rounded-xl hover:bg-gray-750 transition shadow-lg"
-                >
-                    <h2 class="text-2xl font-bold mb-1">{{ tenant.name }}</h2>
-                    <p class="text-indigo-400 text-sm mb-4">
-                        {{ tenant.domain }}
-                    </p>
-
-                    <Link
-                        :href="route('admin.tenant.show', tenant.id)"
-                        class="block w-full text-center bg-gray-700 hover:bg-white hover:text-gray-900 text-white font-bold py-2 px-4 rounded transition group"
-                    >
-                        Inspeccionar
-                    </Link>
+                <div v-else class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                >
+                                    Cliente
+                                </th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                >
+                                    Dominio
+                                </th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                >
+                                    Base de Datos
+                                </th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                >
+                                    Estado
+                                </th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                >
+                                    Creado
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr
+                                v-for="tenant in tenants"
+                                :key="tenant.id"
+                                class="hover:bg-gray-50"
+                            >
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0 h-10 w-10">
+                                            <div
+                                                class="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center"
+                                            >
+                                                <span
+                                                    class="text-white font-medium text-sm"
+                                                >
+                                                    {{
+                                                        tenant.name
+                                                            .charAt(0)
+                                                            .toUpperCase()
+                                                    }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="ml-4">
+                                            <div
+                                                class="text-sm font-medium text-gray-900"
+                                            >
+                                                {{ tenant.name }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td
+                                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                                >
+                                    {{ tenant.domain }}
+                                </td>
+                                <td
+                                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                                >
+                                    {{ tenant.database || "Pendiente" }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span
+                                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                                        :class="getStatusColor(tenant.status)"
+                                    >
+                                        <font-awesome-icon
+                                            :icon="getStatusIcon(tenant.status)"
+                                            class="mr-1"
+                                        />
+                                        {{ tenant.status }}
+                                    </span>
+                                </td>
+                                <td
+                                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                                >
+                                    {{
+                                        new Date(
+                                            tenant.created_at
+                                        ).toLocaleDateString()
+                                    }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
-
-        <CreateTenantForm
-            :show="showCreateModal"
-            @close="showCreateModal = false"
-            @tenant-created="onTenantCreated"
-        />
-
-        <CreateCompanyForm
-            :show="showCreateCompanyModal"
-            :tenant="tenantData"
-            @close="showCreateCompanyModal = false"
-        />
     </div>
 </template>

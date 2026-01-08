@@ -123,4 +123,15 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Admin Token
+    |--------------------------------------------------------------------------
+    |
+    | Token used for admin authentication in API endpoints
+    |
+    */
+
+    'admin_token' => env('ADMIN_TOKEN', 'admin-secret-token'),
+
 ];
