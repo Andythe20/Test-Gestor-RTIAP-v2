@@ -9,7 +9,7 @@ return new class extends Migration
     {
         DB::connection('landlord')->statement("
             ALTER TABLE `tenants`
-            MODIFY database VARCHAR(255) NULL
+            MODIFY `database` VARCHAR(255) NULL
         ");
     }
 
@@ -17,7 +17,7 @@ return new class extends Migration
     {
         DB::connection('landlord')->statement("
             ALTER TABLE `tenants`
-            MODIFY database VARCHAR(255) NOT NULL
+            MODIFY `database` VARCHAR(255) NOT NULL
         ");
     }
 };

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\TenantProvisioner;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -24,7 +25,7 @@ class TenantsController extends Controller
         ]);
     }
 
-    public function store(Request $request, \App\Services\TenantProvisioner $provisioner)
+    public function store(Request $request, TenantProvisioner $provisioner)
     {
         $data = $request->validate([
             'name' => ['required', 'string'],
