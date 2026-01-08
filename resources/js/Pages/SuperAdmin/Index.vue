@@ -1,9 +1,9 @@
 <script setup>
 import { ref } from "vue";
 import { Link, useForm, usePage } from "@inertiajs/vue3";
+import Button from "@/Components/Button.vue";
 import {
     faServer,
-    faArrowRight,
     faPlus,
     faCheck,
     faTimes,
@@ -75,13 +75,10 @@ const getStatusColor = (status) => {
                             dedicadas
                         </p>
                     </div>
-                    <button
-                        @click="showCreateForm = !showCreateForm"
-                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors"
-                    >
+                    <Button @click="showCreateForm = !showCreateForm">
                         <font-awesome-icon :icon="faPlus" class="mr-2" />
                         Nuevo Tenant
-                    </button>
+                    </Button>
                 </div>
             </div>
 
@@ -180,17 +177,17 @@ const getStatusColor = (status) => {
                     </div>
 
                     <div class="flex justify-end space-x-3">
-                        <button
+                        <Button
                             type="button"
+                            variant="secondary"
                             @click="showCreateForm = false"
-                            class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg transition-colors"
                         >
                             Cancelar
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             type="submit"
                             :disabled="form.processing"
-                            class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg transition-colors flex items-center"
+                            :processing="form.processing"
                         >
                             <font-awesome-icon
                                 v-if="form.processing"
@@ -200,7 +197,7 @@ const getStatusColor = (status) => {
                             {{
                                 form.processing ? "Creando..." : "Crear Tenant"
                             }}
-                        </button>
+                        </Button>
                     </div>
                 </form>
             </div>
