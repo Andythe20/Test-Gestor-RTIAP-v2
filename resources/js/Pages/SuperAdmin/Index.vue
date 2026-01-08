@@ -1,9 +1,10 @@
 <script setup>
 import { ref } from "vue";
 import { Link, useForm, usePage } from "@inertiajs/vue3";
+import Button from "@/Components/Button.vue";
+import TextInput from "../../Components/TextInput.vue";
 import {
     faServer,
-    faArrowRight,
     faPlus,
     faCheck,
     faTimes,
@@ -75,13 +76,10 @@ const getStatusColor = (status) => {
                             dedicadas
                         </p>
                     </div>
-                    <button
-                        @click="showCreateForm = !showCreateForm"
-                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors"
-                    >
+                    <Button @click="showCreateForm = !showCreateForm">
                         <font-awesome-icon :icon="faPlus" class="mr-2" />
                         Nuevo Tenant
-                    </button>
+                    </Button>
                 </div>
             </div>
 
@@ -133,64 +131,36 @@ const getStatusColor = (status) => {
                     Crear Nuevo Tenant
                 </h2>
                 <form @submit.prevent="submitForm" class="space-y-4">
-                    <div>
-                        <label
-                            for="name"
-                            class="block text-sm font-medium text-gray-700"
-                        >
-                            Nombre del Cliente
-                        </label>
-                        <input
-                            id="name"
-                            v-model="form.name"
-                            type="text"
-                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="Ej: Walmart Chile"
-                            required
-                        />
-                        <div
-                            v-if="form.errors.name"
-                            class="text-red-600 text-sm mt-1"
-                        >
-                            {{ form.errors.name }}
-                        </div>
-                    </div>
+                    <TextInput
+                        id="name"
+                        label="Nombre del Cliente"
+                        v-model="form.name"
+                        placeholder="Ej: Walmart Chile"
+                        :error="form.errors.name"
+                        required
+                    />
 
-                    <div>
-                        <label
-                            for="domain"
-                            class="block text-sm font-medium text-gray-700"
-                        >
-                            Dominio
-                        </label>
-                        <input
-                            id="domain"
-                            v-model="form.domain"
-                            type="text"
-                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="Ej: walmart.localhost"
-                            required
-                        />
-                        <div
-                            v-if="form.errors.domain"
-                            class="text-red-600 text-sm mt-1"
-                        >
-                            {{ form.errors.domain }}
-                        </div>
-                    </div>
+                    <TextInput
+                        id="domain"
+                        label="Dominio"
+                        v-model="form.domain"
+                        :error="form.errors.domain"
+                        placeholder="Ej: walmart.localhost"
+                        required
+                    />
 
                     <div class="flex justify-end space-x-3">
-                        <button
+                        <Button
                             type="button"
+                            variant="secondary"
                             @click="showCreateForm = false"
-                            class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg transition-colors"
                         >
                             Cancelar
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             type="submit"
                             :disabled="form.processing"
-                            class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg transition-colors flex items-center"
+                            :processing="form.processing"
                         >
                             <font-awesome-icon
                                 v-if="form.processing"
@@ -200,7 +170,7 @@ const getStatusColor = (status) => {
                             {{
                                 form.processing ? "Creando..." : "Crear Tenant"
                             }}
-                        </button>
+                        </Button>
                     </div>
                 </form>
             </div>
