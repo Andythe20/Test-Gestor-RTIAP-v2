@@ -27,8 +27,8 @@ const form = useForm({
 const submitForm = () => {
     form.post("/api/admin/tenants", {
         headers: {
-        "X-ADMIN-TOKEN": import.meta.env.VITE_ADMIN_TOKEN,
-        "ACCEPT": "application/json",
+            "X-ADMIN-TOKEN": import.meta.env.VITE_ADMIN_TOKEN,
+            ACCEPT: "application/json",
         },
         onSuccess: () => {
             showCreateForm.value = false;
