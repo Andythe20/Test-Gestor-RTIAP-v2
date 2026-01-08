@@ -77,7 +77,19 @@ const getStatusColor = (status) => {
                             dedicadas
                         </p>
                     </div>
-                    <Button @click="showCreateForm = !showCreateForm">
+                    <form
+                        method="POST"
+                        :action="route('logout')"
+                        class="inline"
+                    >
+                        <Button type="submit" variant="secondary">
+                            Logout
+                        </Button>
+                    </form>
+                    <Button
+                        @click="showCreateForm = !showCreateForm"
+                        class="ml-4"
+                    >
                         <font-awesome-icon :icon="faPlus" class="mr-2" />
                         Nuevo Tenant
                     </Button>
@@ -298,9 +310,16 @@ const getStatusColor = (status) => {
                                     }}
                                 </td>
 
-                                <td class="px-6 py-4 whitespace-nowrap text-center">
+                                <td
+                                    class="px-6 py-4 whitespace-nowrap text-center"
+                                >
                                     <Button
-                                        :href="route('admin.tenants.show', tenant.id)"
+                                        :href="
+                                            route(
+                                                'admin.tenants.show',
+                                                tenant.id
+                                            )
+                                        "
                                         variant="secondary"
                                         :icon="faArrowRight"
                                         iconOnly
