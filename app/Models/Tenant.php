@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Spatie\Multitenancy\Models\Tenant as BaseTenant;
 
-class Tenant extends Model
+//class Tenant extends Model
+class Tenant extends BaseTenant
 {
+    protected $connection = 'landlord';
+
     protected $fillable = [
         'name',
         'domain',

@@ -12,6 +12,9 @@ return new class extends Migration {
             $table->string('name');
             $table->string('domain')->unique();
 
+            // provisioning|active|failed (tú ya usas active)
+            $table->string('status')->default('provisioning');
+
             // nombre de la DB del tenant (tenant1, tenant2, ...)
             $table->string('database')->nullable()->unique();
 
@@ -20,9 +23,6 @@ return new class extends Migration {
 
             // password cifrada con encrypt() (texto largo)
             $table->text('db_password_encrypted')->nullable();
-
-            // provisioning|active|failed (tú ya usas active)
-            $table->string('status')->default('provisioning');
 
             $table->timestamps();
         });

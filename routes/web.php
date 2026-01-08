@@ -1,8 +1,11 @@
 <?php
 
+use App\Http\Controllers\Admin\TenantsController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\SuperAdminController;
 
-// Rutas del Landlord (Super Admin)
-Route::get('/', [SuperAdminController::class, 'index'])->name('admin.index');
-Route::get('/admin/tenant/{id}', [SuperAdminController::class, 'show'])->name('admin.tenant.show');
+Route::get('/', function () {
+    return redirect('/admin/tenants');
+});
+
+Route::get('/admin/tenants', [TenantsController::class, 'showAdminView'])->name('admin.tenants.index');
+Route::post('/admin/tenants', [TenantsController::class, 'store'])->name('admin.tenants.store');
