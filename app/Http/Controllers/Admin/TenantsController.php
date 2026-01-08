@@ -10,7 +10,6 @@ use Inertia\Inertia;
 
 class TenantsController extends Controller
 {
-    // Funcion para listar todos los tenants
     public function index()
     {
         $tenants = \App\Models\Tenant::all();

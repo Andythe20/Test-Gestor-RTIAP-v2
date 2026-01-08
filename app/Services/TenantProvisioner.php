@@ -13,7 +13,8 @@ class TenantProvisioner
     public function provision(Tenant $tenant): void
     {
         if (empty($tenant->database)) {
-            $tenant->database = 'tenant' . $tenant->id;
+            $slug = Str::slug($tenant->name, '');
+            $tenant->database = $slug;
         }
 
         $dbName = $tenant->database;
@@ -48,7 +49,6 @@ class TenantProvisioner
         $tenant->status = 'active';
         $tenant->save();
     }
-
 
     private function migrateTenant(Tenant $tenant, string $demoPassword): void
     {
