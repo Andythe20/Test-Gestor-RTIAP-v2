@@ -17,7 +17,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
-            $table->string('database'); // tenant1, tenant2, etc
+            $table->string('database')->nullable(); // tenant1, tenant2, etc
             $table->timestamps();
         });
     }
