@@ -24,7 +24,7 @@ const submit = () => {
                     id="email"
                     label="Email"
                     v-model="form.email"
-                    :error="errors.email"
+                    :error="form.errors.email"
                     placeholder="Enter your email"
                     required
                 />
@@ -34,7 +34,7 @@ const submit = () => {
                         label="Password"
                         type="password"
                         v-model="form.password"
-                        :error="errors.password"
+                        :error="form.errors.password"
                         placeholder="Enter your password"
                         required
                     />

@@ -82,6 +82,11 @@ const getStatusColor = (status) => {
                         :action="route('logout')"
                         class="inline"
                     >
+                        <input
+                            type="hidden"
+                            name="_token"
+                            :value="$page.props.csrf_token"
+                        />
                         <Button type="submit" variant="secondary">
                             Logout
                         </Button>

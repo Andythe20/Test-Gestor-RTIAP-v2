@@ -17,6 +17,11 @@ import Button from "@/Components/Button.vue";
                         </p>
                     </div>
                     <form method="POST" :action="route('logout')">
+                        <input
+                            type="hidden"
+                            name="_token"
+                            :value="$page.props.csrf_token"
+                        />
                         <Button type="submit"> Logout </Button>
                     </form>
                 </div>
