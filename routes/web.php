@@ -17,6 +17,10 @@ Route::get('/', function () {
     return redirect('/login');
 });
 
+Route::get('/admin/tenants', [TenantsController::class, 'showAdminView'])->name('admin.tenants.index');
+Route::get('/admin/tenants/{id}', [TenantsController::class, 'show'])->name('admin.tenants.show');
+Route::post('/admin/tenants', [TenantsController::class, 'store'])->name('admin.tenants.store');
+
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login']);
