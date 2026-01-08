@@ -3,8 +3,17 @@
 use App\Http\Controllers\Admin\TenantsController;
 use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 
 Route::get('/', function () {
+    if (Auth::check()) {
+        $user = Auth::user();
+        if ($user->tenant_id) {
+            return redirect('/tenant/dashboard');
+        } else {
+            return redirect('/admin/tenants');
+        }
+    }
     return redirect('/login');
 });
 

@@ -11,6 +11,14 @@ class AuthController extends Controller
 {
     public function showLogin()
     {
+        if (Auth::check()) {
+            $user = Auth::user();
+            if ($user->tenant_id) {
+                return redirect('/tenant/dashboard');
+            } else {
+                return redirect('/admin/tenants');
+            }
+        }
         return Inertia::render('Auth/Login');
     }
 
@@ -38,11 +46,15 @@ class AuthController extends Controller
             // Admin user
             return redirect('/admin/tenants');
         }
+
+        return back()->withErrors(['email' => 'Unable to determine user role.']);
     }
 
-    public function logout()
+    public function logout(Request $request)
     {
         Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
         return redirect('/login');
     }
 }

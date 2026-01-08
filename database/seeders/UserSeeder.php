@@ -19,6 +19,7 @@ class UserSeeder extends Seeder
             'name' => 'Admin',
             'email' => 'admin@example.com',
             'password' => bcrypt('password'),
+            'database' => null,
             'tenant_id' => null,
         ]);
 
@@ -29,6 +30,7 @@ class UserSeeder extends Seeder
                 'name' => $tenant->name . ' User',
                 'email' => 'user@' . $tenant->domain,
                 'password' => bcrypt('password'),
+                'database' => $tenant->database,
                 'tenant_id' => $tenant->id,
             ]);
         }
