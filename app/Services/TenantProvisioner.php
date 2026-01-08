@@ -25,7 +25,10 @@ class TenantProvisioner
         }
 
         $demoPassword = 'tenant1234';
-        $mysqlUserHost = env('TENANT_MYSQL_USER_HOST', 'localhost');
+        // Ensure the created MySQL user host matches the host used by the app connections.
+        // Fall back to DB_HOST so we don't create the user for a different host (localhost vs 127.0.0.1).
+        // $mysqlUserHost = env('TENANT_MYSQL_USER_HOST', 'localhost');
+        $mysqlUserHost = env('TENANT_MYSQL_USER_HOST', env('DB_HOST', '127.0.0.1'));
 
         DB::connection('provisioner')->statement("CREATE DATABASE IF NOT EXISTS `$dbName` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
         DB::connection('provisioner')->statement("CREATE USER IF NOT EXISTS '{$tenant->db_username}'@'{$mysqlUserHost}' IDENTIFIED BY '{$demoPassword}'");
@@ -43,6 +46,10 @@ class TenantProvisioner
         DB::connection('provisioner')->statement("FLUSH PRIVILEGES");
 
         $tenant->status = 'provisioning';
+        //$tenant->save();
+
+        // store the generated credentials on the tenant (encrypt password)
+        $tenant->db_password_encrypted = encrypt($demoPassword);
         $tenant->save();
 
         $this->migrateTenant($tenant, $demoPassword);
