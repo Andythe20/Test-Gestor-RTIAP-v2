@@ -2,8 +2,8 @@
 
 use App\Http\Controllers\Admin\TenantsController;
 use App\Http\Controllers\AuthController;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     if (Auth::check()) {
@@ -14,6 +14,7 @@ Route::get('/', function () {
             return redirect('/admin/tenants');
         }
     }
+
     return redirect('/login');
 });
 
@@ -29,11 +30,11 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-    Route::get('/admin/tenants', [TenantsController::class, 'showAdminView'])->name('admin.tenants.index');
-    Route::get('/admin/tenants/{id}', [TenantsController::class, 'show'])->name('admin.tenants.show');
-    Route::post('/admin/tenants', [TenantsController::class, 'store'])->name('admin.tenants.store');
+    Route::get('/superadmin/dashboard', [TenantsController::class, 'showAdminView'])->name('superadmin.dashboard');
+    Route::post('/superadmin/tenants', [TenantsController::class, 'store'])->name('superadmin.tenants.store');
+    Route::get('/superadmin/tenants/{tenant}', [TenantsController::class, 'show'])->name('superadmin.tenants.show');
 
-    Route::get('/tenant/dashboard', function () {
-        return inertia('Tenant/Dashboard');
+    Route::get('/t/{t}/dashboard', function ($tenant) {
+        return inertia('Tenant/Dashboard', ['tenant' => $tenant]);
     })->name('tenant.dashboard');
 });

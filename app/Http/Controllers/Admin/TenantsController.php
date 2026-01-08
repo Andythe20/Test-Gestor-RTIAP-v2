@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Tenant;
 use App\Services\TenantProvisioner;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -12,30 +13,27 @@ class TenantsController extends Controller
 {
     public function index()
     {
-        $tenants = \App\Models\Tenant::all();
+        $tenants = Tenant::all();
+
         return response()->json($tenants);
     }
 
     public function showAdminView()
     {
-        $tenants = \App\Models\Tenant::orderBy('created_at', 'desc')->get();
+        $tenants = Tenant::orderBy('created_at', 'desc')->get();
+
         return Inertia::render('SuperAdmin/Index', [
-            'tenants' => $tenants
+            'tenants' => $tenants,
         ]);
     }
-  
-  public function show($id)
-    {
-        $tenant = \App\Models\Tenant::findOrFail($id);
 
-        // Hacer el tenant actual para acceder a su base de datos
+    public function show(Tenant $tenant)
+    {
         $tenant->makeCurrent();
 
-        // Configure the tenant database connection at runtime using the
-        // credentials stored on the tenant model (password is stored encrypted)
         try {
             $tenantPassword = null;
-            if (!empty($tenant->db_password_encrypted)) {
+            if (! empty($tenant->db_password_encrypted)) {
                 $tenantPassword = decrypt($tenant->db_password_encrypted);
             }
 
@@ -57,6 +55,7 @@ class TenantsController extends Controller
             // If configuring tenant DB fails we'll mark tenant as failed and show an error page
             $tenant->status = 'failed';
             $tenant->save();
+
             return Inertia::render('SuperAdmin/TenantInfo', [
                 'tenant' => $tenant,
                 'empresa' => null,
@@ -67,7 +66,7 @@ class TenantsController extends Controller
                     'ventas' => 0,
                     'sucursales' => 0,
                 ],
-                'error' => 'Error connecting to tenant database: ' . $e->getMessage(),
+                'error' => 'Error connecting to tenant database: '.$e->getMessage(),
             ]);
         }
 
@@ -87,14 +86,12 @@ class TenantsController extends Controller
                 'productos' => $productos,
                 'ventas' => $ventas,
                 'sucursales' => $sucursales->count(),
-            ]
+            ],
         ]);
     }
 
     public function store(Request $request, TenantProvisioner $provisioner)
     // Funcion para ver un tenant específico al hacer clic en él
-  
-
     {
         $data = $request->validate([
             'name' => ['required', 'string'],
@@ -104,13 +101,12 @@ class TenantsController extends Controller
 
         $name = trim($data['name']);
         $domain = $data['domain'] ?? null;
-        if (!$domain) {
+        if (! $domain) {
             $slug = Str::slug($name, '');
-            $domain = $slug . '.app.test';
+            $domain = $slug.'.app.test';
         }
 
-
-        $tenant = \App\Models\Tenant::create([
+        $tenant = Tenant::create([
             'name' => $name,
             'domain' => $domain,
             'database' => $data['database'] ?? null,
@@ -118,13 +114,13 @@ class TenantsController extends Controller
 
         ]);
 
-
         try {
             $provisioner->provision($tenant);
 
             if ($request->expectsJson()) { // Para pruebas
                 return response()->json($tenant->fresh(), 201);
             }
+
             return redirect()->back()->with('success', 'Tenant creado exitosamente. Base de datos provisionada.'); // Para Front
 
         } catch (\Throwable $e) {
@@ -134,7 +130,8 @@ class TenantsController extends Controller
             if ($request->expectsJson()) {
                 return response()->json(['message' => $e->getMessage()], 500);
             }
-            return redirect()->back()->with('error', 'Error al crear tenant: ' . $e->getMessage());
+
+            return redirect()->back()->with('error', 'Error al crear tenant: '.$e->getMessage());
         }
     }
 }
