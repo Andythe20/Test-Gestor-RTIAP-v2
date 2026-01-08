@@ -8,16 +8,11 @@ return [
     'connections' => [
         'landlord' => [
             'driver' => 'mysql',
-            /*'host' => env('LANDLORD_DB_HOST', '127.0.0.1'),
-            'port' => env('LANDLORD_DB_PORT', 3306), */
-            'host' => env('DB_HOST', '127.0.0.1'),
-            'port' => env('DB_PORT', 3306),
-            //'database' => env('LANDLORD_DB_DATABASE', 'landlord'),
-            'database' => env('DB_DATABASE', 'termometria_central_db'),
-            /* 'username' => env('LANDLORD_DB_USERNAME', 'landlord_app'),
-            'password' => env('LANDLORD_DB_PASSWORD', ''), */
-            'username' => env('DB_USERNAME', 'root'),
-            'password' => env('DB_PASSWORD', ''),
+            'host' => env('LANDLORD_DB_HOST', env('DB_HOST', '127.0.0.1')),
+            'port' => env('LANDLORD_DB_PORT', env('DB_PORT', 3306)),
+            'database' => env('LANDLORD_DB_DATABASE', env('DB_DATABASE', 'landlord')),
+            'username' => env('LANDLORD_DB_USERNAME', env('DB_USERNAME', 'landlord_app')),
+            'password' => env('LANDLORD_DB_PASSWORD', env('DB_PASSWORD', '')),
         ],
 
         'tenant' => [
