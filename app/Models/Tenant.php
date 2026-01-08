@@ -17,4 +17,23 @@ class Tenant extends BaseTenant
         'db_password_encrypted',
         'status',
     ];
+
+    /**
+     * Return the decrypted tenant DB password or null if unavailable.
+     *
+     * @return string|null
+     */
+    public function getDecryptedDbPassword(): ?string
+    {
+        if (empty($this->db_password_encrypted)) {
+            return null;
+        }
+
+        try {
+            return decrypt($this->db_password_encrypted);
+        } catch (\Throwable $e) {
+            // If decryption fails, return null so callers can fallback
+            return null;
+        }
+    }
 }

@@ -10,6 +10,7 @@ import {
     faTimes,
     faClock,
     faDatabase,
+    faArrowRight,
 } from "@fortawesome/free-solid-svg-icons";
 
 const props = defineProps({ tenants: Array });
@@ -226,6 +227,11 @@ const getStatusColor = (status) => {
                                 >
                                     Creado
                                 </th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                >
+                                    Acceder
+                                </th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
@@ -290,6 +296,15 @@ const getStatusColor = (status) => {
                                             tenant.created_at
                                         ).toLocaleDateString()
                                     }}
+                                </td>
+
+                                <td class="px-6 py-4 whitespace-nowrap text-center">
+                                    <Button
+                                        :href="route('admin.tenants.show', tenant.id)"
+                                        variant="secondary"
+                                        :icon="faArrowRight"
+                                        iconOnly
+                                    />
                                 </td>
                             </tr>
                         </tbody>
