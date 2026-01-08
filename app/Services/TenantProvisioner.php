@@ -12,15 +12,16 @@ class TenantProvisioner
 
     public function provision(Tenant $tenant): void
     {
+        $slug = Str::slug($tenant->name, '');
+
         if (empty($tenant->database)) {
-            $slug = Str::slug($tenant->name, '');
-            $tenant->database = $slug;
+            $tenant->database = $slug . '_DB';
         }
 
         $dbName = $tenant->database;
 
         if (empty($tenant->db_username)) {
-            $tenant->db_username = $dbName . '_app';
+            $tenant->db_username = $slug . '_app';
         }
 
         $demoPassword = 'tenant1234';

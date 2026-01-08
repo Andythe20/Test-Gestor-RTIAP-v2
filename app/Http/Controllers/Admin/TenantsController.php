@@ -42,7 +42,7 @@ class TenantsController extends Controller
 
         $tenant = \App\Models\Tenant::create([
             'name' => $name,
-            'domain' => $data['domain'],
+            'domain' => $domain,
             'database' => $data['database'] ?? null,
             'status' => 'provisioning',
 
