@@ -25,6 +25,14 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    type: {
+        type: String,
+        default: "text",
+    },
+    customClass: {
+        type: String,
+        default: "",
+    },
 });
 
 const emit = defineEmits(["update:modelValue"]);
@@ -44,6 +52,7 @@ const emit = defineEmits(["update:modelValue"]);
             :class="[
                 'mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500',
                 error ? 'border-red-500' : 'border-gray-300',
+                customClass,
             ]"
             :required="required"
         />

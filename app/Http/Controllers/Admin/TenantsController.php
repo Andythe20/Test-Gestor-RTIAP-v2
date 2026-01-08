@@ -23,8 +23,8 @@ class TenantsController extends Controller
             'tenants' => $tenants
         ]);
     }
-  
-  public function show($id)
+
+    public function show($id)
     {
         $tenant = \App\Models\Tenant::findOrFail($id);
 
@@ -92,9 +92,6 @@ class TenantsController extends Controller
     }
 
     public function store(Request $request, TenantProvisioner $provisioner)
-    // Funcion para ver un tenant específico al hacer clic en él
-  
-
     {
         $data = $request->validate([
             'name' => ['required', 'string'],
@@ -109,7 +106,6 @@ class TenantsController extends Controller
             $domain = $slug . '.app.test';
         }
 
-
         $tenant = \App\Models\Tenant::create([
             'name' => $name,
             'domain' => $domain,
@@ -117,7 +113,6 @@ class TenantsController extends Controller
             'status' => 'provisioning',
 
         ]);
-
 
         try {
             $provisioner->provision($tenant);
