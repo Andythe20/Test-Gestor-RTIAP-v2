@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class AuthController extends Controller
@@ -27,7 +29,32 @@ class AuthController extends Controller
         ]);
 
         if (! Auth::attempt($credentials)) {
-            return back()->withErrors(['email' => 'Invalid credentials.']);
+            $message = 'Las credenciales proporcionadas son incorrectas.';
+
+            // Log the failed attempt for debugging
+            Log::warning('Login failed', [
+                'email' => $request->input('email'),
+                'ip' => $request->ip(),
+                'x_inertia' => (bool) $request->header('X-Inertia'),
+                'expects_json' => $request->expectsJson() || $request->wantsJson(),
+            ]);
+
+            // Handle Inertia requests separately
+            if ($request->header('X-Inertia')) {
+                return Inertia::render('Auth/Login', [
+                    'errors' => ['email' => $message],
+                ])->toResponse($request)->setStatusCode(422);
+            }
+
+            // If the client expects JSON, return a plain 422 JSON response (useful for API calls)
+            if ($request->expectsJson() || $request->wantsJson()) {
+                return response()->json(['errors' => ['email' => $message]], 422);
+            }
+
+            // Use redirect with session errors so Inertia updates page.props.errors
+            return redirect()->back()
+                ->withErrors(['email' => $message])
+                ->withInput($request->only('email'));
         }
 
         $request->session()->regenerate();
