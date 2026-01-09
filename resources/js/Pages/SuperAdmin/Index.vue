@@ -13,7 +13,9 @@ import {
     faArrowRight,
 } from "@fortawesome/free-solid-svg-icons";
 
-const props = defineProps({ tenants: Array });
+const props = defineProps({
+    tenants: { type: Array, default: () => [] },
+});
 
 const page = usePage();
 
@@ -22,8 +24,16 @@ const showCreateForm = ref(false);
 const logoutForm = useForm({});
 const logout = () => logoutForm.post(route("logout"));
 
+const form = useForm({
+    name: "",
+    path: "",
+    database: "",
+});
+
 const submitForm = () => {
+    if (form.path) form.path = form.path.trim().replace(/^\//, "");
     form.post(route("admin.tenants.store"), {
+        preserveScroll: true,
         onSuccess: () => {
             showCreateForm.value = false;
             form.reset();
@@ -94,7 +104,7 @@ const getStatusColor = (status) => {
                 class="bg-green-50 border border-green-200 rounded-lg p-4 mb-8"
             >
                 <div class="flex">
-                    <div class="flex-shrink-0">
+                    <div class="shrink-0">
                         <font-awesome-icon
                             :icon="faCheck"
                             class="h-5 w-5 text-green-400"
@@ -117,12 +127,12 @@ const getStatusColor = (status) => {
                             </p>
                             <p class="text-sm text-blue-700 mt-1">
                                 <strong>Email:</strong> admin@{{
-                                    form.domain ||
+                                    form.path ||
                                     (form.name
                                         ? form.name
                                               .toLowerCase()
                                               .replace(/\s+/g, "") + ".app.test"
-                                        : "domain")
+                                        : "path")
                                 }}<br />
                                 <strong>Password:</strong> password123
                             </p>
@@ -140,7 +150,7 @@ const getStatusColor = (status) => {
                 class="bg-red-50 border border-red-200 rounded-lg p-4 mb-8"
             >
                 <div class="flex">
-                    <div class="flex-shrink-0">
+                    <div class="shrink-0">
                         <font-awesome-icon
                             :icon="faTimes"
                             class="h-5 w-5 text-red-400"
@@ -155,19 +165,32 @@ const getStatusColor = (status) => {
             </div>
 
             <!-- Create Form -->
+            <!-- Header clickable -->
+            <button
+                type="button"
+                class="w-full text-left bg-white shadow-sm rounded-lg p-6 mb-2 flex items-center justify-between"
+                @click="showCreateForm = !showCreateForm"
+            >
+                <h2 class="text-xl font-semibold text-gray-900">
+                    Crear Nuevo Tenant
+                </h2>
+                <span class="text-gray-500">{{
+                    showCreateForm ? "▲" : "▼"
+                }}</span>
+            </button>
+
+            <!-- Form body (fuera del button) -->
             <div
                 v-if="showCreateForm"
                 class="bg-white shadow-sm rounded-lg p-6 mb-8"
             >
-                <h2 class="text-xl font-semibold text-gray-900 mb-4">
-                    Crear Nuevo Tenant
-                </h2>
                 <form @submit.prevent="submitForm" class="space-y-4">
                     <input
                         type="hidden"
                         name="_token"
                         :value="$page.props.csrf_token"
                     />
+
                     <TextInput
                         id="name"
                         name="name"
@@ -183,8 +206,9 @@ const getStatusColor = (status) => {
                         label="Ruta (opcional)"
                         v-model="form.path"
                         :error="form.errors.path"
-                        placeholder="Ej: /Tenant"
+                        placeholder="Ej: gothen"
                     />
+
                     <TextInput
                         id="database"
                         name="database"
@@ -201,6 +225,7 @@ const getStatusColor = (status) => {
                         >
                             Cancelar
                         </Button>
+
                         <Button
                             type="submit"
                             :disabled="form.processing"
