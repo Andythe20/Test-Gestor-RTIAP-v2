@@ -23,11 +23,7 @@ const logoutForm = useForm({});
 const logout = () => logoutForm.post(route("logout"));
 
 const submitForm = () => {
-    form.post("/api/admin/tenants", {
-        headers: {
-            "X-ADMIN-TOKEN": import.meta.env.VITE_ADMIN_TOKEN,
-            ACCEPT: "application/json",
-        },
+    form.post(route("admin.tenants.store"), {
         onSuccess: () => {
             showCreateForm.value = false;
             form.reset();
@@ -111,7 +107,7 @@ const getStatusColor = (status) => {
                         <div
                             v-if="
                                 page.props.flash.success.includes(
-                                    'credenciales'
+                                    'credenciales',
                                 )
                             "
                             class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded"
@@ -167,22 +163,34 @@ const getStatusColor = (status) => {
                     Crear Nuevo Tenant
                 </h2>
                 <form @submit.prevent="submitForm" class="space-y-4">
+                    <input
+                        type="hidden"
+                        name="_token"
+                        :value="$page.props.csrf_token"
+                    />
                     <TextInput
                         id="name"
+                        name="name"
                         label="Nombre del Cliente"
                         v-model="form.name"
-                        placeholder="Ej: Walmart Chile"
                         :error="form.errors.name"
                         required
                     />
 
                     <TextInput
-                        id="Ruta"
-                        label="Ruta"
-                        v-model="form.domain"
-                        :error="form.errors.domain"
+                        id="path"
+                        name="path"
+                        label="Ruta (opcional)"
+                        v-model="form.path"
+                        :error="form.errors.path"
                         placeholder="Ej: /Tenant"
-                        required
+                    />
+                    <TextInput
+                        id="database"
+                        name="database"
+                        label="Database (opcional)"
+                        v-model="form.database"
+                        :error="form.errors.database"
                     />
 
                     <div class="flex justify-end space-x-3">
