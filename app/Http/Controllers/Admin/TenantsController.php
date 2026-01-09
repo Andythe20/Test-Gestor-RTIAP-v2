@@ -31,7 +31,7 @@ class TenantsController extends Controller
             'tenants' => $tenants,
         ]);
     }
-  
+
     public function show(Tenant $tenant)
     {
         try {
@@ -94,17 +94,27 @@ class TenantsController extends Controller
         try {
             $provisioner->provision($tenant);
 
-            // Create login credentials for the tenant
+            if (! $tenant->password) {
+                $password = 'hola123';
+            }
+            $email = $data['email'] ?? null;
+            if (! is_string($email) || trim($email) === '') {
+                $email = 'admin@'.$tenant->path.'.cl';
+            }
+
             \App\Models\User::create([
-                'name' => $tenant->name . ' Admin',
-                'email' => 'admin@' . $tenant->domain,
-                'password' => bcrypt('password123'),
+                'name' => $tenant->name.'Admin',
+                'email' => $email,
+                'password' => $password,
+                'role' => 'tenant',
+                'tenant_id' => $tenant->id,
                 'database' => $tenant->database,
             ]);
 
             if ($request->expectsJson()) { // Para pruebas
                 return response()->json($tenant->fresh(), 201);
             }
+
             return redirect()->back()->with('success', 'Tenant creado exitosamente. Base de datos provisionada y credenciales de acceso generadas.'); // Para Front
 
         } catch (\Throwable $e) {

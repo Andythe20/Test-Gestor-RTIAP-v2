@@ -2,9 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Models\User;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Hash;
 
 class CreateUser extends Command
 {
@@ -24,43 +22,67 @@ class CreateUser extends Command
      *
      * @var string
      */
-    protected $description = 'Create a new user with properly hashed password';
 
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(): int
     {
-        $name = $this->argument('name');
-        $email = $this->argument('email');
-        $password = $this->argument('password');
-        $tenantId = $this->option('tenant_id');
+        $name = trim((string) $this->argument('name'));
+        $email = $this->argument('email'); // puede venir null
+        $password = (string) $this->argument('password');
 
-        // Check if user already exists
-        if (User::where('email', $email)->exists()) {
-            $this->error("User with email {$email} already exists!");
+        $tenantId = $this->option('tenant_id'); // null o string/number
+        $role = $this->option('role');          // admin|tenant|null
+
+        if (! $role) {
+            $role = $tenantId ? 'tenant' : 'admin';
+        }
+
+        if (! in_array($role, ['admin', 'tenant'], true)) {
+            $this->error("Role inválido: {$role}. Usa admin o tenant.");
+
             return 1;
         }
 
-        // Create the user
-        $user = User::create([
-            'name' => $name,
-            'email' => $email,
-            'password' => Hash::make($password),
-            'tenant_id' => $tenantId,
-            'database' => null, // Will be set if tenant is specified
-        ]);
+        $tenant = null;
+        if ($role === 'tenant') {
+            if (! $tenantId) {
+                $this->error('Para role=tenant debes pasar --tenant_id=ID');
 
-        // If tenant is specified, update database field
-        if ($tenantId) {
-            $tenant = \App\Models\Tenant::find($tenantId);
-            if ($tenant) {
-                $user->database = $tenant->database_name;
-                $user->save();
+                return 1;
             }
+
+            $tenant = \App\Models\Tenant::on('landlord')->find($tenantId);
+            if (! $tenant) {
+                $this->error("Tenant no encontrado con id {$tenantId}");
+
+                return 1;
+            }
+        } else {
+            $tenantId = null;
         }
 
-        $this->info("User {$name} created successfully with email {$email}");
+        // Crear en landlord explícitamente
+        if (\App\Models\User::on('landlord')->where('email', $email)->exists()) {
+            $this->error("User con email {$email} ya existe.");
+
+            return 1;
+        }
+
+        $user = \App\Models\User::on('landlord')->create([
+            'name' => $name,
+            'email' => $email,
+            'password' => $password,
+            'role' => $role,
+            'tenant_id' => $tenantId,
+            'database' => $tenant?->database,
+        ]);
+
+        $this->info("User creado: {$user->email} (role={$role})");
+        if ($tenant) {
+            $this->info("   Tenant: {$tenant->name} (id={$tenant->id}, path={$tenant->path})");
+        }
 
         return 0;
     }
