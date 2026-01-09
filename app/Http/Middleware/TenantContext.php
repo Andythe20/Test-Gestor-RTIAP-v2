@@ -10,14 +10,26 @@ class TenantContext
 {
     public function handle(Request $request, Closure $next)
     {
-        /** @var Tenant $tenant */
-        $tenant = $request->route('tenant');
-        if (! $tenant) {
+        $param = $request->route('tenant');
+
+        // Si no viene nada, 404
+        if (! $param) {
             abort(404);
         }
 
+        // Si ya viene como modelo (binding OK), úsalo.
+        // Si viene como string (binding NO corrió), búscalo por path.
+        $tenant = $param instanceof Tenant
+            ? $param
+            : Tenant::on('landlord')->where('path', (string) $param)->firstOrFail();
+
         $user = $request->user();
-        if (! $user || $user->tenant_id !== $tenant->id) {
+        if (! $user) {
+            abort(403);
+        }
+
+        // Admin opcional: deja pasar
+        if ($user->role !== 'admin' && (int) $user->tenant_id !== (int) $tenant->id) {
             abort(403);
         }
 
