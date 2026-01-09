@@ -14,34 +14,12 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create super admin user
+        // Seeder para crear un usuario SuperAdmin (ejecutar 1 sola vez)
         User::create([
-            'name' => 'Super Admin',
+            'name' => 'SuperAdmin',
             'email' => 'superadmin@test.cl',
-            'password' => bcrypt('superadmin'),
-            'database' => null,
-            'tenant_id' => null,
+            'password' => bcrypt('test1234'),
+            'database' => null
         ]);
-
-        // Create admin user
-        User::create([
-            'name' => 'Admin',
-            'email' => 'admin@example.com',
-            'password' => bcrypt('password'),
-            'database' => null,
-            'tenant_id' => null,
-        ]);
-
-        // Create tenant users for existing tenants
-        $tenants = Tenant::all();
-        foreach ($tenants as $tenant) {
-            User::create([
-                'name' => $tenant->name . ' User',
-                'email' => 'user@' . $tenant->domain,
-                'password' => bcrypt('password'),
-                'database' => $tenant->database,
-                'tenant_id' => $tenant->id,
-            ]);
-        }
     }
 }

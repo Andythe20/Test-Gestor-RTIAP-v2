@@ -117,10 +117,19 @@ class TenantsController extends Controller
         try {
             $provisioner->provision($tenant);
 
+            // Create login credentials for the tenant
+            \App\Models\User::create([
+                'name' => $tenant->name . ' Admin',
+                'email' => 'admin@' . $tenant->domain,
+                'password' => bcrypt('password123'),
+                'database' => $tenant->database,
+                'tenant_id' => $tenant->id,
+            ]);
+
             if ($request->expectsJson()) { // Para pruebas
                 return response()->json($tenant->fresh(), 201);
             }
-            return redirect()->back()->with('success', 'Tenant creado exitosamente. Base de datos provisionada.'); // Para Front
+            return redirect()->back()->with('success', 'Tenant creado exitosamente. Base de datos provisionada y credenciales de acceso generadas.'); // Para Front
 
         } catch (\Throwable $e) {
             $tenant->status = 'failed';

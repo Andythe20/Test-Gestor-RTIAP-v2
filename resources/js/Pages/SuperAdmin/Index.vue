@@ -121,6 +121,33 @@ const getStatusColor = (status) => {
                         <p class="text-sm font-medium text-green-800">
                             {{ page.props.flash.success }}
                         </p>
+                        <div
+                            v-if="
+                                page.props.flash.success.includes(
+                                    'credenciales'
+                                )
+                            "
+                            class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded"
+                        >
+                            <p class="text-sm text-blue-800 font-medium">
+                                Credenciales de acceso generadas:
+                            </p>
+                            <p class="text-sm text-blue-700 mt-1">
+                                <strong>Email:</strong> admin@{{
+                                    form.domain ||
+                                    (form.name
+                                        ? form.name
+                                              .toLowerCase()
+                                              .replace(/\s+/g, "") + ".app.test"
+                                        : "domain")
+                                }}<br />
+                                <strong>Password:</strong> password123
+                            </p>
+                            <p class="text-xs text-blue-600 mt-2">
+                                El tenant puede usar estas credenciales para
+                                acceder a su dashboard desde la página de login.
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
