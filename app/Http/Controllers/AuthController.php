@@ -50,11 +50,9 @@ class AuthController extends Controller
             request()->session()->regenerateToken();
 
             return redirect('/login')->withErrors(['email' => 'Tu usuario no tiene tenant asignado']);
-
         }
 
-        return redirect('/t/'.$user->tenant->path);
-
+        return redirect('/t/' . $user->tenant->path);
     }
 
     public function logout(Request $request)
@@ -64,6 +62,5 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/login');
-
     }
 }
