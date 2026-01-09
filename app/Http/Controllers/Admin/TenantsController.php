@@ -123,7 +123,6 @@ class TenantsController extends Controller
                 'email' => 'admin@' . $tenant->domain,
                 'password' => bcrypt('password123'),
                 'database' => $tenant->database,
-                'tenant_id' => $tenant->id,
             ]);
 
             if ($request->expectsJson()) { // Para pruebas
