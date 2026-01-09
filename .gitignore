@@ -1,4 +1,5 @@
 *.log
+pint.json
 .DS_Store
 .env
 .env.backup
