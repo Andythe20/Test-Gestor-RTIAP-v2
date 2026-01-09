@@ -19,11 +19,6 @@ class Tenant extends BaseTenant
         'status',
     ];
 
-    public function getRouteKeyName(): string
-    {
-        return 'path';
-    }
-
     /**
      * Return the decrypted tenant DB password or null if unavailable.
      */

@@ -122,7 +122,7 @@ class TenantsController extends Controller
                 return response()->json(['message' => $e->getMessage()], 500);
             }
 
-            return redirect()->back()->with('error', 'Error al crear tenant: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error al crear tenant: '.$e->getMessage());
         }
     }
 }

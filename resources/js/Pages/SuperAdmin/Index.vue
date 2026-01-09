@@ -361,7 +361,7 @@ const getStatusColor = (status) => {
                                 >
                                     {{
                                         new Date(
-                                            tenant.created_at
+                                            tenant.created_at,
                                         ).toLocaleDateString()
                                     }}
                                 </td>
@@ -373,7 +373,7 @@ const getStatusColor = (status) => {
                                         :href="
                                             route(
                                                 'admin.tenants.show',
-                                                tenant.path
+                                                tenant.id,
                                             )
                                         "
                                         variant="secondary"
