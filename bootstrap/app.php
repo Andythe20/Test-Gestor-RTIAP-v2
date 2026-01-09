@@ -14,8 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin.only' => \App\Http\Middleware\AdminOnly::class,
             'tenant.context' => \App\Http\Middleware\TenantContext::class,
-
-            // opcional (para API con token)
+            'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
             'admin.token' => \App\Http\Middleware\EnsureAdminToken::class,
         ]);
 
