@@ -31,7 +31,7 @@ class TenantsController extends Controller
             'tenants' => $tenants,
         ]);
     }
-
+  
     public function show(Tenant $tenant)
     {
         try {

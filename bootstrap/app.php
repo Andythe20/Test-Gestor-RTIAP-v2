@@ -18,6 +18,10 @@ return Application::configure(basePath: dirname(__DIR__))
             // opcional (para API con token)
             'admin.token' => \App\Http\Middleware\EnsureAdminToken::class,
         ]);
+
+        $middleware->validateCsrfTokens(except: [
+            '/login',
+        ]);
     })
     ->withExceptions(function ($exceptions) {
         //
