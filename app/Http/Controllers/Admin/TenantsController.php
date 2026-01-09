@@ -31,7 +31,7 @@ class TenantsController extends Controller
             'tenants' => $tenants,
         ]);
     }
-  
+
     public function show(Tenant $tenant)
     {
         try {
@@ -52,7 +52,6 @@ class TenantsController extends Controller
                 'estadisticas' => $estadisticas,
                 'error' => null,
             ]);
-
         } catch (\Throwable $e) {
             $tenant->forceFill(['status' => 'failed'])->save();
 
@@ -69,7 +68,6 @@ class TenantsController extends Controller
             } catch (\Throwable $ignored) {
             }
         }
-
     }
 
     public function store(Request $request, TenantProvisioner $provisioner)
@@ -114,7 +112,7 @@ class TenantsController extends Controller
                 return response()->json(['message' => $e->getMessage()], 500);
             }
 
-            return redirect()->back()->with('error', 'Error al crear tenant: '.$e->getMessage());
+            return redirect()->back()->with('error', 'Error al crear tenant: ' . $e->getMessage());
         }
     }
 }
