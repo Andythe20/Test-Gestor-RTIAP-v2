@@ -1,10 +1,11 @@
 <script setup>
-import { useForm } from "@inertiajs/vue3";
-import TextInput from "@/Components/TextInput.vue";
+import { useForm, usePage } from "@inertiajs/vue3";
 import Button from "@/Components/Button.vue";
 
+const page = usePage();
+
 const form = useForm({
-    email: "",
+    email: page.props.old?.email ?? "", // opcional: conservar el email antiguo si viene
     password: "",
 });
 
@@ -85,6 +86,8 @@ const submit = () => {
                                     id="email"
                                     type="email"
                                     v-model="form.email"
+                                    @input="form.clearErrors('email')"
+                                    autofocus
                                     class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                                     placeholder="admin@empresa.com"
                                     required
@@ -125,6 +128,7 @@ const submit = () => {
                                     id="password"
                                     type="password"
                                     v-model="form.password"
+                                    @input="form.clearErrors('password')"
                                     class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                                     placeholder="••••••••"
                                     required
