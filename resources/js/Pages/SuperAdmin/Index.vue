@@ -19,10 +19,8 @@ const page = usePage();
 
 const showCreateForm = ref(false);
 
-const form = useForm({
-    name: "",
-    domain: "",
-});
+const logoutForm = useForm({});
+const logout = () => logoutForm.post(route("logout"));
 
 const submitForm = () => {
     form.post("/api/admin/tenants", {
@@ -81,20 +79,9 @@ const getStatusColor = (status) => {
                             dedicadas
                         </p>
                     </div>
-                    <form
-                        method="POST"
-                        :action="route('logout')"
-                        class="inline"
-                    >
-                        <input
-                            type="hidden"
-                            name="_token"
-                            :value="$page.props.csrf_token"
-                        />
-                        <Button type="submit" variant="secondary">
-                            Logout
-                        </Button>
-                    </form>
+                    <Button @click="logout" variant="secondary">
+                        Logout
+                    </Button>
                     <Button
                         @click="showCreateForm = !showCreateForm"
                         class="ml-4"
@@ -190,11 +177,11 @@ const getStatusColor = (status) => {
                     />
 
                     <TextInput
-                        id="domain"
-                        label="Dominio"
+                        id="Ruta"
+                        label="Ruta"
                         v-model="form.domain"
                         :error="form.errors.domain"
-                        placeholder="Ej: walmart.localhost"
+                        placeholder="Ej: /Tenant"
                         required
                     />
 
@@ -258,7 +245,7 @@ const getStatusColor = (status) => {
                                 <th
                                     class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                                 >
-                                    Dominio
+                                    Ruta
                                 </th>
                                 <th
                                     class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -317,7 +304,7 @@ const getStatusColor = (status) => {
                                 <td
                                     class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
                                 >
-                                    {{ tenant.domain }}
+                                    {{ tenant.path }}
                                 </td>
                                 <td
                                     class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
@@ -341,7 +328,7 @@ const getStatusColor = (status) => {
                                 >
                                     {{
                                         new Date(
-                                            tenant.created_at
+                                            tenant.created_at,
                                         ).toLocaleDateString()
                                     }}
                                 </td>
@@ -353,7 +340,7 @@ const getStatusColor = (status) => {
                                         :href="
                                             route(
                                                 'admin.tenants.show',
-                                                tenant.id
+                                                tenant.path,
                                             )
                                         "
                                         variant="secondary"
