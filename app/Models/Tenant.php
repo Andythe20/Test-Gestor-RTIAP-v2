@@ -4,13 +4,14 @@ namespace App\Models;
 
 use Spatie\Multitenancy\Models\Tenant as BaseTenant;
 
-//class Tenant extends Model
+// class Tenant extends Model
 class Tenant extends BaseTenant
 {
     protected $connection = 'landlord';
 
     protected $fillable = [
         'name',
+        'path',
         'domain',
         'database',
         'db_username',
@@ -18,10 +19,13 @@ class Tenant extends BaseTenant
         'status',
     ];
 
+    public function getRouteKeyName(): string
+    {
+        return 'path';
+    }
+
     /**
      * Return the decrypted tenant DB password or null if unavailable.
-     *
-     * @return string|null
      */
     public function getDecryptedDbPassword(): ?string
     {
