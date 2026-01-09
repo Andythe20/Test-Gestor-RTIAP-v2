@@ -31,7 +31,7 @@ const form = useForm({
 });
 
 const submitForm = () => {
-    if (form.path) form.path = form.path.trim().replace(/^\//, "");
+    //    if (form.path) form.path = form.path.trim().replace(/^\//, "");
     form.post(route("admin.tenants.store"), {
         preserveScroll: true,
         onSuccess: () => {
