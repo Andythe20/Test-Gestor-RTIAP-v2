@@ -3,7 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Empleado;
+use App\Models\Empresa;
+use App\Models\Producto;
+use App\Models\Sucursal;
 use App\Models\Tenant;
+use App\Models\Venta;
 use App\Services\TenantProvisioner;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -20,7 +25,7 @@ class TenantsController extends Controller
 
     public function showAdminView()
     {
-        $tenants = Tenant::orderBy('created_at', 'desc')->get();
+        $tenants = Tenant::query()->orderByDesc('created_at')->get();
 
         return Inertia::render('SuperAdmin/Index', [
             'tenants' => $tenants,
@@ -31,9 +36,25 @@ class TenantsController extends Controller
     {
         try {
             $tenant->makeCurrent();
+            $empresa = Empresa::query()->first();
+            $sucursales = Sucursal::query()->get();
+            $estadisticas = [
+                'empleados' => Empleado::query()->count(),
+                'productos' => Producto::query()->count(),
+                'ventas' => Venta::query()->count(),
+                'sucursales' => $sucursales->count(),
+            ];
+
+            return Inertia::render('SuperAdmin/TenantInfo', [
+                'tenant' => $tenant,
+                'empresa' => $empresa,
+                'sucursales' => $sucursales,
+                'estadisticas' => $estadisticas,
+                'error' => null,
+            ]);
+
         } catch (\Throwable $e) {
-            $tenant->status = 'failed';
-            $tenant->save();
+            $tenant->forceFill(['status' => 'failed'])->save();
 
             return Inertia::render('SuperAdmin/TenantInfo', [
                 'tenant' => $tenant,
@@ -42,25 +63,13 @@ class TenantsController extends Controller
                 'estadisticas' => [],
                 'error' => $e->getMessage(),
             ]);
+        } finally {
+            try {
+                $tenant->forgetCurrent();
+            } catch (\Throwable $ignored) {
+            }
         }
 
-        $empresa = \App\Models\Empresa::first();
-        $sucursales = \App\Models\Sucursal::all();
-        $empleados = \App\Models\Empleado::count();
-        $productos = \App\Models\Producto::count();
-        $ventas = \App\Models\Venta::count();
-
-        return Inertia::render('SuperAdmin/TenantInfo', [
-            'tenant' => $tenant,
-            'empresa' => $empresa,
-            'sucursales' => $sucursales,
-            'estadisticas' => [
-                'empleados' => $empleados,
-                'productos' => $productos,
-                'ventas' => $ventas,
-                'sucursales' => $sucursales->count(),
-            ],
-        ]);
     }
 
     public function store(Request $request, TenantProvisioner $provisioner)
@@ -72,15 +81,11 @@ class TenantsController extends Controller
         ]);
 
         $name = trim($data['name']);
-        $path = $data['path'] ?? null;
-        if (!$path) {
-            $slug = Str::slug($name, '');
-            $domain = $slug.'';
-        }
+        $path = $data['path'] ?? Str::slug($name);
 
         $tenant = Tenant::create([
             'name' => $name,
-            'domain' => $domain,
+            'path' => $path,
             'database' => $data['database'] ?? null,
             'status' => 'provisioning',
 
@@ -96,8 +101,7 @@ class TenantsController extends Controller
             return redirect()->back()->with('success', 'Tenant creado exitosamente. Base de datos provisionada.'); // Para Front
 
         } catch (\Throwable $e) {
-            $tenant->status = 'failed';
-            $tenant->save();
+            $tenant->forceFill(['status' => 'failed'])->save();
 
             if ($request->expectsJson()) {
                 return response()->json(['message' => $e->getMessage()], 500);

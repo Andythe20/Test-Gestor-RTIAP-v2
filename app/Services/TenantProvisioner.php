@@ -9,19 +9,18 @@ use Illuminate\Support\Str;
 
 class TenantProvisioner
 {
-
     public function provision(Tenant $tenant): void
     {
         $slug = Str::slug($tenant->name, '');
 
         if (empty($tenant->database)) {
-            $tenant->database = $slug . '_DB';
+            $tenant->database = $slug.'_DB';
         }
 
         $dbName = $tenant->database;
 
         if (empty($tenant->db_username)) {
-            $tenant->db_username = $slug . '_app';
+            $tenant->db_username = $slug.'_app';
         }
 
         $demoPassword = 'tenant1234';
@@ -43,10 +42,10 @@ class TenantProvisioner
             TO '{$tenant->db_username}'@'{$mysqlUserHost}'
         ");
 
-        DB::connection('provisioner')->statement("FLUSH PRIVILEGES");
+        DB::connection('provisioner')->statement('FLUSH PRIVILEGES');
 
         $tenant->status = 'provisioning';
-        //$tenant->save();
+        $tenant->save();
 
         // store the generated credentials on the tenant (encrypt password)
         $tenant->db_password_encrypted = encrypt($demoPassword);
