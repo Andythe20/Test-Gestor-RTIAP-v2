@@ -53,7 +53,17 @@ class TenantsController extends Controller
                 'error' => null,
             ]);
         } catch (\Throwable $e) {
-            $tenant->forceFill(['status' => 'failed'])->save();
+            // Log the exception for easier debugging and store the error on the
+            // tenant record so the admin can inspect what went wrong later.
+            logger()->error('Error rendering tenant info: ' . $e->getMessage(), [
+                'exception' => $e,
+                'tenant_id' => $tenant->id,
+            ]);
+
+            $tenant->forceFill([
+                'status' => 'failed',
+                'error_message' => $e->getMessage(),
+            ])->save();
 
             return Inertia::render('SuperAdmin/TenantInfo', [
                 'tenant' => $tenant,
@@ -97,11 +107,11 @@ class TenantsController extends Controller
             }
             $email = $data['email'] ?? null;
             if (! is_string($email) || trim($email) === '') {
-                $email = 'admin@'.$tenant->path.'.cl';
+                $email = 'admin@' . $tenant->path . '.cl';
             }
 
             \App\Models\User::create([
-                'name' => $tenant->name.'Admin',
+                'name' => $tenant->name . 'Admin',
                 'email' => $email,
                 'password' => $password,
                 'role' => 'tenant',
@@ -113,7 +123,13 @@ class TenantsController extends Controller
                 return response()->json($tenant->fresh(), 201);
             }
 
-            return redirect()->back()->with('success', 'Tenant creado exitosamente. Base de datos provisionada y credenciales de acceso generadas.'); // Para Front
+            /**
+             * Redirigir a la página principal del administrador (GET /admin) en lugar de volver
+             * a la URL de POST (/admin/tenants). Redirigir después de un POST puede provocar que
+             * el navegador ejecute un GET en la ruta POST no definida (Método no permitido).
+             * Use la ruta especificada para la página de inicio del administrador para que el cliente reciba un GET correcto.*/
+            return redirect()->route('admin.home')
+                ->with('success', 'Tenant creado exitosamente. Base de datos provisionada y credenciales de acceso generadas.'); // Para Front
 
         } catch (\Throwable $e) {
             $tenant->forceFill(['status' => 'failed'])->save();
@@ -122,7 +138,8 @@ class TenantsController extends Controller
                 return response()->json(['message' => $e->getMessage()], 500);
             }
 
-            return redirect()->back()->with('error', 'Error al crear tenant: '.$e->getMessage());
+            return redirect()->route('admin.home')
+                ->with('error', 'Error al crear tenant: ' . $e->getMessage());
         }
     }
 }

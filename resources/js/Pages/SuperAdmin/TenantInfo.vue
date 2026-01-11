@@ -29,7 +29,7 @@ const props = defineProps({
                 <div class="flex items-center justify-between">
                     <div class="flex items-center">
                         <Link
-                            href="/admin/tenants"
+                            :href="route('admin.home')"
                             class="mr-4 text-gray-400 hover:text-gray-600"
                         >
                             <font-awesome-icon :icon="faArrowLeft" />
