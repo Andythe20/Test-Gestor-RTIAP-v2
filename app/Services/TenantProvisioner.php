@@ -11,13 +11,13 @@ class TenantProvisioner
     public function provision(Tenant $tenant): void
     {
         if (empty($tenant->database)) {
-            $tenant->database = 'tenant'.$tenant->id;
+            $tenant->database = 'tenant' . $tenant->id;
         }
 
         $dbName = $tenant->database;
 
         if (empty($tenant->db_username)) {
-            $tenant->db_username = $dbName.'_app';
+            $tenant->db_username = $dbName . '_app';
         }
 
         $demoPassword = 'Tenant.1234';

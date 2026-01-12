@@ -5,7 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Models\Tenant;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', fn () => redirect()->route('login'));
+Route::get('/', fn() => redirect()->route('login'));
 
 /*
     AUTH PARA LOGIN
@@ -29,6 +29,7 @@ Route::prefix('admin')
 
         Route::post('/tenants', [TenantsController::class, 'store'])->name('admin.tenants.store');
         Route::get('/tenants/{tenant:id}', [TenantsController::class, 'show'])->name('admin.tenants.show');
+        Route::post('/tenants/{tenant:id}/seed', [TenantsController::class, 'seed'])->name('admin.tenants.seed');
     });
 
 /*
@@ -39,7 +40,8 @@ Route::prefix('t/{tenant:path}')
     ->middleware(['auth', 'tenant.context'])
     ->group(function () {
 
-        Route::get('/', fn (Tenant $tenant) => inertia('Tenant/Dashboard', ['tenant' => $tenant->path])
+        Route::get(
+            '/',
+            fn(Tenant $tenant) => inertia('Tenant/Dashboard', ['tenant' => $tenant->path])
         )->name('tenant.home');
-
     });
