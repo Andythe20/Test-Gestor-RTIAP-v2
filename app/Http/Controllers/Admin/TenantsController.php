@@ -42,29 +42,23 @@ class TenantsController extends Controller
             if (empty($tenant->database) || empty($tenant->db_username) || empty($decryptedPassword)) {
                 throw new \RuntimeException('Tenant database credentials are missing or incomplete.');
             }
+            $base = config('database.connections.tenant');
 
-            config(['database.connections.tenant' => [
-                'driver' => 'mysql',
-                'host' => env('TENANT_DB_HOST', env('DB_HOST', '127.0.0.1')),
-                'port' => env('TENANT_DB_PORT', env('DB_PORT', '3306')),
+            config(['database.connections.tenant' => array_merge($base, [
                 'database' => $tenant->database,
                 'username' => $tenant->db_username,
                 'password' => $decryptedPassword,
-                'charset' => 'utf8mb4',
-                'collation' => 'utf8mb4_unicode_ci',
-                'strict' => true,
-            ]]);
+            ])]);
 
             DB::purge('tenant');
             DB::reconnect('tenant');
 
-            $tenant->makeCurrent();
-            $empresa = Empresa::query()->first();
-            $sucursales = Sucursal::query()->get();
+            $empresa = Empresa::on('tenant')->first();
+            $sucursales = Sucursal::on('tenant')->get();
             $estadisticas = [
-                'empleados' => Empleado::query()->count(),
-                'productos' => Producto::query()->count(),
-                'ventas' => Venta::query()->count(),
+                'empleados' => Empleado::on('tenant')->count(),
+                'productos' => Producto::on('tenant')->count(),
+                'ventas' => Venta::on('tenant')->count(),
                 'sucursales' => $sucursales->count(),
             ];
 
@@ -94,7 +88,6 @@ class TenantsController extends Controller
             ]);
         } finally {
             try {
-                $tenant->forgetCurrent();
             } catch (\Throwable $ignored) {
             }
         }
@@ -122,11 +115,8 @@ class TenantsController extends Controller
         try {
             $provisioner->provision($tenant);
 
-            if (! $tenant->password) {
-                $password = 'hola123';
-            }
-
             $email = $data['email'] ?? null;
+            $password = $data['password'] ?? 'hola123';
 
             if (! is_string($email) || trim($email) === '') {
                 $email = 'admin@'.$tenant->path.'.cl';
