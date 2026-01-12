@@ -10,21 +10,35 @@ class TenantProvisioner
 {
     public function provision(Tenant $tenant): void
     {
+        $normalizedName = strtolower($tenant->name);
+        $normalizedName = preg_replace('/\s+/', '_', $normalizedName);
+        $normalizedName = preg_replace('/[^a-z0-9_]/', '', $normalizedName);
+        $normalizedName = preg_replace('/_+/', '_', $normalizedName);
+        $normalizedName = trim($normalizedName, '_');
+
         if (empty($tenant->database)) {
-            $tenant->database = 'tenant'.$tenant->id;
+            $tenant->database = $normalizedName.'_db';
+        }
+
+        if (empty($tenant->db_username)) {
+            $tenant->db_username = $normalizedName.'_app';
         }
 
         $dbName = $tenant->database;
-
-        if (empty($tenant->db_username)) {
-            $tenant->db_username = $dbName.'_app';
-        }
-
+        $dbUsername = $tenant->db_username;
         $demoPassword = 'Tenant.1234';
         $mysqlUserHost = env('TENANT_MYSQL_USER_HOST', 'localhost');
 
+        // Validación fuerte (identificadores SQL)
+        if (! preg_match('/^[a-z0-9_]{1,64}$/', $dbName)) {
+            throw new \RuntimeException("DB inválida: {$dbName}");
+        }
+        if (! preg_match('/^[a-z0-9_]{1,64}$/', $dbUsername)) {
+            throw new \RuntimeException("Usuario MySQL inválido: {$dbUsername}");
+        }
+
         DB::connection('provisioner')->statement("CREATE DATABASE IF NOT EXISTS `$dbName` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-        DB::connection('provisioner')->statement("CREATE USER IF NOT EXISTS '{$tenant->db_username}'@'{$mysqlUserHost}' IDENTIFIED BY '{$demoPassword}'");
+        DB::connection('provisioner')->statement("CREATE USER IF NOT EXISTS '{$dbUsername}'@'{$mysqlUserHost}' IDENTIFIED BY '{$demoPassword}'");
 
         DB::connection('provisioner')->statement(
             "ALTER USER '{$tenant->db_username}'@'{$mysqlUserHost}' IDENTIFIED BY '{$demoPassword}'"
@@ -33,10 +47,8 @@ class TenantProvisioner
         DB::connection('provisioner')->statement("
             GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES
             ON `$dbName`.*
-            TO '{$tenant->db_username}'@'{$mysqlUserHost}'
+            TO '{$dbUsername}'@'{$mysqlUserHost}'
         ");
-
-        DB::connection('provisioner')->statement('FLUSH PRIVILEGES');
 
         $tenant->status = 'provisioning';
         $tenant->save();
