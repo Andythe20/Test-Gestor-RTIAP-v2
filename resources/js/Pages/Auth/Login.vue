@@ -1,11 +1,12 @@
 <script setup>
 import { useForm, usePage } from "@inertiajs/vue3";
 import Button from "@/Components/Button.vue";
+import TextInput from "@/Components/TextInput.vue";
+import PasswordInput from "@/Components/PasswordInput.vue";
 
-const page = usePage();
-
+// useForm() para manejar el formulario de inicio de sesión
 const form = useForm({
-    email: page.props.old?.email ?? "", // opcional: conservar el email antiguo si viene
+    email: "",
     password: "",
 });
 
@@ -58,94 +59,34 @@ const submit = () => {
 
                 <div class="p-8">
                     <form @submit.prevent="submit" class="space-y-6">
-                        <div>
-                            <label
-                                for="email"
-                                class="block text-sm font-medium text-gray-700 mb-2"
-                            >
-                                Correo Electrónico
-                            </label>
-                            <div class="relative">
-                                <div
-                                    class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
-                                >
-                                    <svg
-                                        class="h-5 w-5 text-gray-400"
-                                        fill="currentColor"
-                                        viewBox="0 0 20 20"
-                                    >
-                                        <path
-                                            d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"
-                                        ></path>
-                                        <path
-                                            d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"
-                                        ></path>
-                                    </svg>
-                                </div>
-                                <input
-                                    id="email"
-                                    type="email"
-                                    v-model="form.email"
-                                    @input="form.clearErrors('email')"
-                                    autofocus
-                                    class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                                    placeholder="admin@empresa.com"
-                                    required
-                                />
-                            </div>
-                            <p
-                                v-if="form.errors.email"
-                                class="mt-1 text-sm text-red-600"
-                            >
-                                {{ form.errors.email }}
-                            </p>
-                        </div>
+                        <TextInput
+                            id="email"
+                            label="Correo Electrónico"
+                            v-model="form.email"
+                            :error="form.errors.email"
+                            type="email"
+                            placeholder="admin@empresa.com"
+                            help="Usa tu correo de administrador"
+                            required
+                            size="lg"
+                        />
 
-                        <div>
-                            <label
-                                for="password"
-                                class="block text-sm font-medium text-gray-700 mb-2"
-                            >
-                                Contraseña
-                            </label>
-                            <div class="relative">
-                                <div
-                                    class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
-                                >
-                                    <svg
-                                        class="h-5 w-5 text-gray-400"
-                                        fill="currentColor"
-                                        viewBox="0 0 20 20"
-                                    >
-                                        <path
-                                            fill-rule="evenodd"
-                                            d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
-                                            clip-rule="evenodd"
-                                        ></path>
-                                    </svg>
-                                </div>
-                                <input
-                                    id="password"
-                                    type="password"
-                                    v-model="form.password"
-                                    @input="form.clearErrors('password')"
-                                    class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                                    placeholder="••••••••"
-                                    required
-                                />
-                            </div>
-                            <p
-                                v-if="form.errors.password"
-                                class="mt-1 text-sm text-red-600"
-                            >
-                                {{ form.errors.password }}
-                            </p>
-                        </div>
+                        <PasswordInput
+                            id="password"
+                            label="Contraseña"
+                            v-model="form.password"
+                            :error="form.errors.password"
+                            placeholder="••••••••"
+                            required
+                            @update:modelValue="form.clearErrors('password')"
+                            size="lg"
+                        />
 
                         <Button
                             type="submit"
                             :processing="form.processing"
-                            class="w-full !bg-blue-600 hover:!bg-blue-700 !text-white !font-medium !py-3 !rounded-lg"
+                            size="lg"
+                            fullWidth
                         >
                             <template v-if="form.processing">
                                 <svg

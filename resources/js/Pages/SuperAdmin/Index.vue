@@ -2,7 +2,8 @@
 import { ref } from "vue";
 import { Link, useForm, usePage } from "@inertiajs/vue3";
 import Button from "@/Components/Button.vue";
-import TextInput from "../../Components/TextInput.vue";
+import TextInput from "@/Components/TextInput.vue";
+import Checkbox from "@/Components/Checkbox.vue";
 import {
     faServer,
     faPlus,
@@ -333,11 +334,10 @@ const getStatusColor = (status) => {
                     <!-- Admin checkbox -->
                     <div class="flex items-center justify-between">
                         <label class="inline-flex items-center">
-                            <input
-                                id="user_is_admin"
-                                type="checkbox"
-                                class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
+                            <Checkbox
                                 v-model="userForm.is_admin"
+                                label="Usuario administrador"
+                                id="user_is_admin"
                             />
                             <span class="ml-2 text-sm text-gray-700"
                                 >Usuario administrador</span
