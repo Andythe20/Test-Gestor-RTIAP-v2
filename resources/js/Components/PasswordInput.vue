@@ -1,5 +1,8 @@
 <script setup>
-// Props a definir: id, label, v-model, :error, placeholder y required
+import { ref } from "vue";
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
+
 const props = defineProps({
     id: {
         type: String,
@@ -17,27 +20,11 @@ const props = defineProps({
         type: String,
         default: "",
     },
-    placeholder: {
-        type: String,
-        default: "",
-    },
     required: {
         type: Boolean,
         default: false,
     },
-    type: {
-        type: String,
-        default: "text",
-    },
-    customClass: {
-        type: String,
-        default: "",
-    },
-    help: {
-        type: String,
-        default: "",
-    },
-    prefix: {
+    placeholder: {
         type: String,
         default: "",
     },
@@ -48,6 +35,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["update:modelValue"]);
+const show = ref(false);
 </script>
 
 <template>
@@ -55,41 +43,34 @@ const emit = defineEmits(["update:modelValue"]);
         <label :for="id" class="block text-sm font-medium text-gray-700">
             {{ label }} <span v-if="required" class="text-red-500">*</span>
         </label>
-
-        <!-- Input with optional prefix adornment -->
-        <div :class="['relative', prefix ? 'mt-1' : '']">
-            <span
-                v-if="prefix"
-                class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400"
-            >
-                {{ prefix }}
-            </span>
+        <div class="mt-1 relative">
             <input
                 :id="id"
-                :type="type"
+                :type="show ? 'text' : 'password'"
                 :value="modelValue"
-                @input="$emit('update:modelValue', $event.target.value)"
+                @input="emit('update:modelValue', $event.target.value)"
                 :placeholder="placeholder"
                 :class="[
                     'block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500',
-                    prefix ? 'pl-10' : 'mt-1',
                     size === 'sm'
                         ? 'px-3 py-2 text-sm'
                         : size === 'lg'
                         ? 'px-5 py-3 text-lg'
                         : 'px-4 py-2 text-base',
+                    'pr-10',
                     error ? 'border-red-500' : 'border-gray-300',
-                    customClass,
                 ]"
                 :required="required"
                 :aria-invalid="!!error"
             />
+            <button
+                type="button"
+                class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 hover:text-gray-700"
+                @click="show = !show"
+            >
+                <FontAwesomeIcon :icon="show ? faEyeSlash : faEye" />
+            </button>
         </div>
-
-        <!-- Help or error messages -->
-        <p v-if="help && !error" class="text-gray-500 text-xs mt-1">
-            {{ help }}
-        </p>
         <p v-if="error" class="text-red-600 text-sm mt-1">{{ error }}</p>
     </div>
 </template>

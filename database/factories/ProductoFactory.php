@@ -18,7 +18,24 @@ class ProductoFactory extends Factory
     {
         return [
             'id' => fake()->unique()->randomNumber(),
-            'nombre' => fake()->word(),
+            // insertar nombres de productos comunes
+            'nombre' => fake()->randomElement([
+                'Laptop',
+                'Smartphone',
+                'Tablet',
+                'Monitor',
+                'Teclado',
+                'Ratón',
+                'Impresora',
+                'Cámara',
+                'Auriculares',
+                'Altavoces',
+                'Disco Duro',
+                'Memoria USB',
+                'Router',
+                'Smartwatch',
+                'Proyector'
+            ]),
             'descripcion' => fake()->sentence(),
             'precio' => fake()->numberBetween(1000, 100000),
             'created_at' => now(),
