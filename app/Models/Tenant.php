@@ -35,4 +35,9 @@ class Tenant extends BaseTenant
             return null;
         }
     }
+
+    public function users()
+    {
+        return $this->hasMany(\App\Models\User::class, 'tenant_id');
+    }
 }

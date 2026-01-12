@@ -3,15 +3,15 @@
 use App\Http\Controllers\Admin\TenantsController;
 use App\Http\Controllers\Admin\UsersController;
 use App\Http\Controllers\AuthController;
-use App\Models\Tenant;
-use App\Models\Empresa;
 use App\Models\Empleado;
+use App\Models\Empresa;
 use App\Models\Producto;
 use App\Models\Tarjeta;
+use App\Models\Tenant;
 use App\Models\Venta;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', fn() => redirect()->route('login'));
+Route::get('/', fn () => redirect()->route('login'));
 
 /*
     AUTH PARA LOGIN
@@ -37,11 +37,14 @@ Route::prefix('admin')
         Route::get('/tenants/{tenant:id}', [TenantsController::class, 'show'])->name('admin.tenants.show');
         // Crear usuario
         Route::post('/users', [UsersController::class, 'store'])->name('admin.users.store');
-      
+
         // Seeder
         Route::post('/tenants/{tenant:id}/seed', [TenantsController::class, 'seed'])->name('admin.tenants.seed');
 
-      
+        // Ver usuarios de c/ tenant
+        Route::get('/admin/tenants/{tenant}/users', [TenantsController::class, 'users'])
+            ->name('admin.tenants.users');
+
     });
 
 /*
