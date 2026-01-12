@@ -21,6 +21,27 @@ axios.defaults.withCredentials = true;
 axios.defaults.xsrfCookieName = "XSRF-TOKEN";
 axios.defaults.xsrfHeaderName = "X-XSRF-TOKEN";
 
+// Ensure the X-CSRF-TOKEN header is always in sync with the XSRF-TOKEN cookie.
+// Some SPA navigation flows can leave the <meta name="csrf-token"> value
+// stale compared to the session cookie. Laravel uses the session token for
+// verification, so prefer the cookie value when present.
+axios.interceptors.request.use((config) => {
+    try {
+        const match = document.cookie
+            .split("; ")
+            .find((c) => c.startsWith("XSRF-TOKEN="));
+        if (match) {
+            const cookieVal = decodeURIComponent(match.split("=")[1]);
+            config.headers = config.headers || {};
+            config.headers["X-CSRF-TOKEN"] = cookieVal;
+        }
+    } catch (e) {
+        // ignore — fallback to existing header/meta behavior
+    }
+
+    return config;
+});
+
 // If the Inertia client (or other libraries) use fetch instead of axios, fetch
 // does not send cookies by default. Force fetch to include credentials so that
 // session cookies are sent with XHR requests. This is safe for local
