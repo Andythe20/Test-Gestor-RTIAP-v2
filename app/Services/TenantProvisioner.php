@@ -17,11 +17,11 @@ class TenantProvisioner
         $normalizedName = trim($normalizedName, '_');
 
         if (empty($tenant->database)) {
-            $tenant->database = $normalizedName.'_db';
+            $tenant->database = $normalizedName . '_db';
         }
 
         if (empty($tenant->db_username)) {
-            $tenant->db_username = $normalizedName.'_app';
+            $tenant->db_username = $normalizedName . '_app';
         }
 
         $dbName = $tenant->database;

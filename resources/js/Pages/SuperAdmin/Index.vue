@@ -2,7 +2,8 @@
 import { ref } from "vue";
 import { Link, useForm, usePage } from "@inertiajs/vue3";
 import Button from "@/Components/Button.vue";
-import TextInput from "../../Components/TextInput.vue";
+import TextInput from "@/Components/TextInput.vue";
+import Checkbox from "@/Components/Checkbox.vue";
 import {
     faServer,
     faPlus,
@@ -11,6 +12,7 @@ import {
     faClock,
     faDatabase,
     faArrowRight,
+    faUsers,
 } from "@fortawesome/free-solid-svg-icons";
 
 const props = defineProps({
@@ -20,6 +22,7 @@ const props = defineProps({
 const page = usePage();
 
 const showCreateForm = ref(false);
+const showCreateUserForm = ref(false);
 
 const logoutForm = useForm({});
 const logout = () => logoutForm.post(route("logout"));
@@ -29,6 +32,21 @@ const form = useForm({
     path: "",
     database: "",
 });
+
+// Frontend-only user form (no backend submission)
+const userForm = useForm({
+    name: "",
+    email: "",
+    password: "",
+    is_admin: true, // default checked
+    tenant_id: null,
+});
+
+// Track expanded tenants in the UI when admin checkbox is unchecked
+const expandedTenants = ref({});
+const toggleTenantExpand = (id) => {
+    expandedTenants.value[id] = !expandedTenants.value[id];
+};
 
 const submitForm = () => {
     //    if (form.path) form.path = form.path.trim().replace(/^\//, "");
@@ -94,6 +112,13 @@ const getStatusColor = (status) => {
                     >
                         <font-awesome-icon :icon="faPlus" class="mr-2" />
                         Nuevo Tenant
+                    </Button>
+                    <Button
+                        @click="showCreateUserForm = !showCreateUserForm"
+                        class="ml-4"
+                    >
+                        <font-awesome-icon :icon="faPlus" class="mr-2" />
+                        Nuevo Usuario
                     </Button>
                 </div>
             </div>
@@ -240,6 +265,224 @@ const getStatusColor = (status) => {
                                 form.processing ? "Creando..." : "Crear Tenant"
                             }}
                         </Button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Create User -->
+            <!-- Header clickable -->
+            <button
+                type="button"
+                class="w-full text-left bg-white shadow-sm rounded-lg p-6 mb-2 flex items-center justify-between"
+                @click="showCreateUserForm = !showCreateUserForm"
+            >
+                <h2
+                    class="text-xl font-semibold text-gray-900 flex items-center"
+                >
+                    <font-awesome-icon
+                        :icon="faUsers"
+                        class="mr-2 text-indigo-600"
+                    />
+                    Crear Nuevo Usuario
+                </h2>
+                <span class="text-gray-500">{{
+                    showCreateUserForm ? "▲" : "▼"
+                }}</span>
+            </button>
+
+            <!-- Form body (fuera del button) -->
+            <div
+                v-if="showCreateUserForm"
+                class="bg-white shadow-sm rounded-lg p-6 mb-8"
+            >
+                <form class="space-y-4">
+                    <input
+                        type="hidden"
+                        name="_token"
+                        :value="$page.props.csrf_token"
+                    />
+
+                    <TextInput
+                        id="user_name"
+                        name="user_name"
+                        label="Nombre del Usuario"
+                        v-model="userForm.name"
+                        :error="userForm.errors?.name"
+                        required
+                    />
+
+                    <TextInput
+                        id="user_email"
+                        name="user_email"
+                        label="Correo Electrónico"
+                        type="email"
+                        v-model="userForm.email"
+                        :error="userForm.errors?.email"
+                        required
+                    />
+
+                    <TextInput
+                        id="user_password"
+                        name="user_password"
+                        label="Contraseña"
+                        type="password"
+                        v-model="userForm.password"
+                        :error="userForm.errors?.password"
+                        required
+                    />
+
+                    <!-- Admin checkbox -->
+                    <div class="flex items-center justify-between">
+                        <label class="inline-flex items-center">
+                            <Checkbox
+                                v-model="userForm.is_admin"
+                                label="Usuario administrador"
+                                id="user_is_admin"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >Usuario administrador</span
+                            >
+                        </label>
+                        <span class="text-xs text-gray-500">
+                            Por defecto marcado. Si lo desmarcas, podrás asignar
+                            el usuario a un tenant y ver sus usuarios.
+                        </span>
+                    </div>
+
+                    <!-- Tenants & Users list shown when not admin -->
+                    <div
+                        v-if="!userForm.is_admin"
+                        class="mt-4 border rounded-lg"
+                    >
+                        <div class="px-4 py-3 border-b">
+                            <h3 class="text-md font-semibold text-gray-900">
+                                Asignar a Tenant y ver usuarios
+                            </h3>
+                            <p class="text-sm text-gray-600">
+                                Selecciona el tenant al que pertenecerá el
+                                usuario y revisa los usuarios existentes de cada
+                                tenant.
+                            </p>
+                        </div>
+
+                        <div class="divide-y">
+                            <div
+                                v-for="tenant in tenants"
+                                :key="tenant.id"
+                                class="px-4 py-3"
+                            >
+                                <div class="flex items-center justify-between">
+                                    <div class="min-w-0">
+                                        <p
+                                            class="text-sm font-medium text-gray-900 truncate"
+                                        >
+                                            {{ tenant.name }}
+                                        </p>
+                                        <p
+                                            class="text-xs text-gray-500 truncate"
+                                        >
+                                            Ruta: {{ tenant.path || "-" }} • DB:
+                                            {{ tenant.database || "Pendiente" }}
+                                        </p>
+                                    </div>
+                                    <div class="flex items-center space-x-3">
+                                        <!-- Select tenant radio -->
+                                        <label
+                                            class="inline-flex items-center text-sm text-gray-700"
+                                        >
+                                            <input
+                                                type="radio"
+                                                name="tenant_id"
+                                                class="text-indigo-600 focus:ring-indigo-500"
+                                                :value="tenant.id"
+                                                v-model="userForm.tenant_id"
+                                            />
+                                            <span class="ml-2"
+                                                >Seleccionar</span
+                                            >
+                                        </label>
+                                        <button
+                                            type="button"
+                                            class="text-sm text-indigo-600 hover:text-indigo-800"
+                                            @click="
+                                                toggleTenantExpand(tenant.id)
+                                            "
+                                        >
+                                            {{
+                                                expandedTenants[tenant.id]
+                                                    ? "Ocultar usuarios"
+                                                    : "Ver usuarios"
+                                            }}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Nested users list -->
+                                <div
+                                    v-if="expandedTenants[tenant.id]"
+                                    class="mt-3 bg-gray-50 rounded-md p-3"
+                                >
+                                    <div
+                                        class="flex items-center mb-2 text-gray-700"
+                                    >
+                                        <font-awesome-icon
+                                            :icon="faUsers"
+                                            class="mr-2"
+                                        />
+                                        <span class="text-sm font-medium"
+                                            >Usuarios del tenant</span
+                                        >
+                                    </div>
+                                    <ul class="space-y-2">
+                                        <li
+                                            v-if="
+                                                !tenant.users ||
+                                                tenant.users.length === 0
+                                            "
+                                            class="text-xs text-gray-500"
+                                        >
+                                            No hay usuarios disponibles para
+                                            este tenant (solo UI). Integra el
+                                            backend para mostrarlos aquí.
+                                        </li>
+                                        <li
+                                            v-else
+                                            v-for="u in tenant.users"
+                                            :key="u.id"
+                                            class="flex items-center justify-between text-sm bg-white px-3 py-2 rounded border"
+                                        >
+                                            <div class="min-w-0">
+                                                <p
+                                                    class="font-medium text-gray-900 truncate"
+                                                >
+                                                    {{ u.name }}
+                                                </p>
+                                                <p
+                                                    class="text-xs text-gray-500 truncate"
+                                                >
+                                                    {{ u.email }}
+                                                </p>
+                                            </div>
+                                            <span
+                                                class="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700"
+                                                >{{ u.role || "user" }}</span
+                                            >
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end space-x-3 mt-6">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            @click="showCreateUserForm = false"
+                        >
+                            Cancelar
+                        </Button>
+                        <Button type="button"> Crear Usuario </Button>
                     </div>
                 </form>
             </div>

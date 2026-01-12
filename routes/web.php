@@ -4,9 +4,14 @@ use App\Http\Controllers\Admin\TenantsController;
 use App\Http\Controllers\Admin\UsersController;
 use App\Http\Controllers\AuthController;
 use App\Models\Tenant;
+use App\Models\Empresa;
+use App\Models\Empleado;
+use App\Models\Producto;
+use App\Models\Tarjeta;
+use App\Models\Venta;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', fn () => redirect()->route('login'));
+Route::get('/', fn() => redirect()->route('login'));
 
 /*
     AUTH PARA LOGIN
@@ -30,9 +35,13 @@ Route::prefix('admin')
 
         Route::post('/tenants', [TenantsController::class, 'store'])->name('admin.tenants.store');
         Route::get('/tenants/{tenant:id}', [TenantsController::class, 'show'])->name('admin.tenants.show');
-
         // Crear usuario
         Route::post('/users', [UsersController::class, 'store'])->name('admin.users.store');
+      
+        // Seeder
+        Route::post('/tenants/{tenant:id}/seed', [TenantsController::class, 'seed'])->name('admin.tenants.seed');
+
+      
     });
 
 /*
@@ -43,7 +52,32 @@ Route::prefix('t/{tenant:path}')
     ->middleware(['auth', 'tenant.context'])
     ->group(function () {
 
-        Route::get('/', fn (Tenant $tenant) => inertia('Tenant/Dashboard', ['tenant' => $tenant->path])
-        )->name('tenant.home');
+        Route::get('/', function (Tenant $tenant) {
+            // Gracias al middleware tenant.context, las consultas usan la conexión del tenant.
+            $empresa = Empresa::query()->first();
+            $empleados = Empleado::query()->orderByDesc('created_at')->limit(10)->get();
+            $productos = Producto::query()->orderByDesc('created_at')->limit(10)->get();
+            $tarjetas = Tarjeta::query()->orderByDesc('created_at')->limit(10)->get();
+            $ventas = Venta::query()
+                ->with(['empleado', 'producto', 'tarjeta'])
+                ->orderByDesc('created_at')
+                ->limit(10)
+                ->get();
 
+            $estadisticas = [
+                'empleados' => Empleado::query()->count(),
+                'productos' => Producto::query()->count(),
+                'ventas' => Venta::query()->count(),
+            ];
+
+            return inertia('Tenant/Dashboard', [
+                'tenant' => $tenant->path,
+                'empresa' => $empresa,
+                'empleados' => $empleados,
+                'productos' => $productos,
+                'tarjetas' => $tarjetas,
+                'ventas' => $ventas,
+                'estadisticas' => $estadisticas,
+            ]);
+        })->name('tenant.home');
     });
