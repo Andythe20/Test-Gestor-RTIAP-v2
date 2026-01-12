@@ -3,6 +3,7 @@ import { ref } from "vue";
 import { Link, useForm, usePage } from "@inertiajs/vue3";
 import Button from "@/Components/Button.vue";
 import TextInput from "@/Components/TextInput.vue";
+import PasswordInput from "@/Components/PasswordInput.vue";
 import Checkbox from "@/Components/Checkbox.vue";
 import {
     faServer,
@@ -109,15 +110,15 @@ const getStatusColor = (status) => {
                     <Button
                         @click="showCreateForm = !showCreateForm"
                         class="ml-4"
+                        :icon="faPlus"
                     >
-                        <font-awesome-icon :icon="faPlus" class="mr-2" />
                         Nuevo Tenant
                     </Button>
                     <Button
                         @click="showCreateUserForm = !showCreateUserForm"
                         class="ml-4"
+                        :icon="faPlus"
                     >
-                        <font-awesome-icon :icon="faPlus" class="mr-2" />
                         Nuevo Usuario
                     </Button>
                 </div>
@@ -218,28 +219,30 @@ const getStatusColor = (status) => {
 
                     <TextInput
                         id="name"
-                        name="name"
                         label="Nombre del Cliente"
+                        placeholder="Ej: Walmart"
                         v-model="form.name"
                         :error="form.errors.name"
                         required
+                        size="md"
                     />
 
                     <TextInput
                         id="path"
-                        name="path"
+                        placeholder="Ej: walmart"
                         label="Ruta (opcional)"
                         v-model="form.path"
                         :error="form.errors.path"
-                        placeholder="Ej: gothen"
+                        size="md"
                     />
 
                     <TextInput
                         id="database"
-                        name="database"
+                        placeholder="Ej: walmart_DB"
                         label="Database (opcional)"
                         v-model="form.database"
                         :error="form.errors.database"
+                        size="md"
                     />
 
                     <div class="flex justify-end space-x-3">
@@ -253,18 +256,11 @@ const getStatusColor = (status) => {
 
                         <Button
                             type="submit"
-                            :disabled="form.processing"
                             :processing="form.processing"
+                            size="lg"
+                            loadingLabel="Creando Tenant..."
+                            >Crear Tenant</Button
                         >
-                            <font-awesome-icon
-                                v-if="form.processing"
-                                :icon="faClock"
-                                class="mr-2 animate-spin"
-                            />
-                            {{
-                                form.processing ? "Creando..." : "Crear Tenant"
-                            }}
-                        </Button>
                     </div>
                 </form>
             </div>
@@ -321,11 +317,10 @@ const getStatusColor = (status) => {
                         required
                     />
 
-                    <TextInput
+                    <PasswordInput
                         id="user_password"
                         name="user_password"
                         label="Contraseña"
-                        type="password"
                         v-model="userForm.password"
                         :error="userForm.errors?.password"
                         required
@@ -333,16 +328,11 @@ const getStatusColor = (status) => {
 
                     <!-- Admin checkbox -->
                     <div class="flex items-center justify-between">
-                        <label class="inline-flex items-center">
-                            <Checkbox
-                                v-model="userForm.is_admin"
-                                label="Usuario administrador"
-                                id="user_is_admin"
-                            />
-                            <span class="ml-2 text-sm text-gray-700"
-                                >Usuario administrador</span
-                            >
-                        </label>
+                        <Checkbox
+                            v-model="userForm.is_admin"
+                            label="Usuario administrador"
+                            id="user_is_admin"
+                        />
                         <span class="text-xs text-gray-500">
                             Por defecto marcado. Si lo desmarcas, podrás asignar
                             el usuario a un tenant y ver sus usuarios.
