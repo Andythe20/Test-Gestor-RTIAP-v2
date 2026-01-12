@@ -11,7 +11,7 @@ class TenantProvisioner
     public function provision(Tenant $tenant): void
     {
         if (empty($tenant->database)) {
-            $tenant->database = 'tenant'.$tenant->id;
+            $tenant->database = $tenant->name.'_DB';
         }
 
         $dbName = $tenant->database;
