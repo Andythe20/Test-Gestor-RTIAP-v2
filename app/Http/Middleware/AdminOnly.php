@@ -11,7 +11,7 @@ class AdminOnly
     {
         $user = $request->user();
 
-        if (! $user || $user->role !== 'admin') {
+        if (! $user || ! $user->is_admin) {
             abort(403);
         }
 

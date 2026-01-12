@@ -5,6 +5,7 @@ import Button from "@/Components/Button.vue";
 import TextInput from "@/Components/TextInput.vue";
 import PasswordInput from "@/Components/PasswordInput.vue";
 import Checkbox from "@/Components/Checkbox.vue";
+import axios from "axios";
 import {
     faServer,
     faPlus,
@@ -34,23 +35,46 @@ const form = useForm({
     database: "",
 });
 
-// Frontend-only user form (no backend submission)
 const userForm = useForm({
     name: "",
     email: "",
     password: "",
-    is_admin: true, // default checked
+    is_admin: false,
     tenant_id: null,
 });
 
-// Track expanded tenants in the UI when admin checkbox is unchecked
+const createUser = () => {
+    if (userForm.is_admin) {
+        userForm.tenant_id = null;
+    }
+    userForm.post(route("admin.users.store"));
+};
+
 const expandedTenants = ref({});
-const toggleTenantExpand = (id) => {
-    expandedTenants.value[id] = !expandedTenants.value[id];
+const tenantsUsers = ref({});
+const loadingUsers = ref({});
+
+const toggleTenantExpand = async (tenant_id) => {
+    expandedTenants.value[tenant_id] = !expandedTenants.value[tenant_id];
+
+    if (!expandedTenants.value[tenant_id]) return;
+
+    if (tenantsUsers.value[tenant_id]) return;
+
+    loadingUsers.value[tenant_id] = true;
+
+    try {
+        const res = await axios.get(route("admin.tenants.users", tenant_id));
+        tenantsUsers.value[tenant_id] = res.data.users || [];
+    } catch (e) {
+        tenantsUsers.value[tenant_id] = [];
+        console.error(e);
+    } finally {
+        loadingUsers.value[tenant_id] = false;
+    }
 };
 
 const submitForm = () => {
-    //    if (form.path) form.path = form.path.trim().replace(/^\//, "");
     form.post(route("admin.tenants.store"), {
         preserveScroll: true,
         onSuccess: () => {
@@ -328,11 +352,13 @@ const getStatusColor = (status) => {
 
                     <!-- Admin checkbox -->
                     <div class="flex items-center justify-between">
-                        <Checkbox
-                            v-model="userForm.is_admin"
-                            label="Usuario administrador"
-                            id="user_is_admin"
-                        />
+                        <label class="inline-flex items-center">
+                            <Checkbox
+                                v-model="userForm.is_admin"
+                                label="Usuario administrador"
+                                id="user_is_admin"
+                            />
+                        </label>
                         <span class="text-xs text-gray-500">
                             Por defecto marcado. Si lo desmarcas, podrás asignar
                             el usuario a un tenant y ver sus usuarios.
@@ -425,19 +451,25 @@ const getStatusColor = (status) => {
                                     </div>
                                     <ul class="space-y-2">
                                         <li
-                                            v-if="
-                                                !tenant.users ||
-                                                tenant.users.length === 0
+                                            v-if="loadingUsers[tenant.id]"
+                                            class="text-xs text-gray-500"
+                                        >
+                                            Cargando Usuarios
+                                        </li>
+                                        <li
+                                            v-else-if="
+                                                !tenantsUsers[tenant.id] ||
+                                                tenantsUsers[tenant.id]
+                                                    .length === 0
                                             "
                                             class="text-xs text-gray-500"
                                         >
                                             No hay usuarios disponibles para
-                                            este tenant (solo UI). Integra el
-                                            backend para mostrarlos aquí.
+                                            este tenant
                                         </li>
                                         <li
                                             v-else
-                                            v-for="u in tenant.users"
+                                            v-for="u in tenantsUsers[tenant.id]"
                                             :key="u.id"
                                             class="flex items-center justify-between text-sm bg-white px-3 py-2 rounded border"
                                         >
@@ -455,7 +487,11 @@ const getStatusColor = (status) => {
                                             </div>
                                             <span
                                                 class="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700"
-                                                >{{ u.role || "user" }}</span
+                                                >{{
+                                                    u.is_admin
+                                                        ? "Admin"
+                                                        : "Tenant"
+                                                }}</span
                                             >
                                         </li>
                                     </ul>
@@ -472,7 +508,9 @@ const getStatusColor = (status) => {
                         >
                             Cancelar
                         </Button>
-                        <Button type="button"> Crear Usuario </Button>
+                        <Button type="button" @click="createUser">
+                            Crear Usuario
+                        </Button>
                     </div>
                 </form>
             </div>
