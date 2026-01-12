@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\TenantsController;
+use App\Http\Controllers\Admin\UsersController;
 use App\Http\Controllers\AuthController;
 use App\Models\Tenant;
 use Illuminate\Support\Facades\Route;
@@ -29,6 +30,9 @@ Route::prefix('admin')
 
         Route::post('/tenants', [TenantsController::class, 'store'])->name('admin.tenants.store');
         Route::get('/tenants/{tenant:id}', [TenantsController::class, 'show'])->name('admin.tenants.show');
+
+        // Crear usuario
+        Route::post('/users', [UsersController::class, 'store'])->name('admin.users.store');
     });
 
 /*
