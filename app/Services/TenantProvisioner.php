@@ -10,21 +10,27 @@ class TenantProvisioner
 {
     public function provision(Tenant $tenant): void
     {
-        if (empty($tenant->database)) {
-            $tenant->database = $tenant->name.'_DB';
-        }
+        $normalizedName = strtolower($tenant->name);
+        $normalizedName = preg_replace('/\s+/', '_', $normalizedName);
+        $normalizedName = preg_replace('/[^a-z0-9_]/', '', $normalizedName);
+        $normalizedName = preg_replace('/_+/', '_', $normalizedName);
+        $normalizedName = trim($normalizedName, '_');
 
+        if (empty($tenant->database)) {
+            $tenant->database = $normalizedName.'_DB';
+        }
         $dbName = $tenant->database;
 
         if (empty($tenant->db_username)) {
-            $tenant->db_username = $dbName.'_app';
+            $tenant->db_username = $normalizedName.'_app';
         }
+        $dbUsername = $tenant->db_username;
 
         $demoPassword = 'Tenant.1234';
         $mysqlUserHost = env('TENANT_MYSQL_USER_HOST', 'localhost');
 
         DB::connection('provisioner')->statement("CREATE DATABASE IF NOT EXISTS `$dbName` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-        DB::connection('provisioner')->statement("CREATE USER IF NOT EXISTS '{$tenant->db_username}'@'{$mysqlUserHost}' IDENTIFIED BY '{$demoPassword}'");
+        DB::connection('provisioner')->statement("CREATE USER IF NOT EXISTS {$dbUsername}'@'{$mysqlUserHost}' IDENTIFIED BY '{$demoPassword}'");
 
         DB::connection('provisioner')->statement(
             "ALTER USER '{$tenant->db_username}'@'{$mysqlUserHost}' IDENTIFIED BY '{$demoPassword}'"
@@ -33,7 +39,7 @@ class TenantProvisioner
         DB::connection('provisioner')->statement("
             GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES
             ON `$dbName`.*
-            TO '{$tenant->db_username}'@'{$mysqlUserHost}'
+            TO '{$dbUsername}'@'{$mysqlUserHost}'
         ");
 
         DB::connection('provisioner')->statement('FLUSH PRIVILEGES');

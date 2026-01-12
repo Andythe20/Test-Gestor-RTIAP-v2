@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\User;
 use Illuminate\Console\Command;
 
 class CreateUser extends Command
@@ -15,7 +16,8 @@ class CreateUser extends Command
                             {name : The name of the user}
                             {email : The email of the user}
                             {password : The password for the user}
-                            {--tenant_id= : The tenant ID (optional)}';
+                            {--tenant_id= : The tenant ID (optional)
+                            {--role= : admin|tenant}';
 
     /**
      * The console command description.
@@ -63,8 +65,7 @@ class CreateUser extends Command
             $tenantId = null;
         }
 
-        // Crear en landlord explícitamente
-        if (\App\Models\User::on('landlord')->where('email', $email)->exists()) {
+        if (User::on('landlord')->where('email', $email)->exists()) {
             $this->error("User con email {$email} ya existe.");
 
             return 1;
