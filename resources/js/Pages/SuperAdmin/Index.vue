@@ -117,7 +117,7 @@ const getStatusColor = (status) => {
                         <div
                             v-if="
                                 page.props.flash.success.includes(
-                                    'credenciales',
+                                    'credenciales'
                                 )
                             "
                             class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded"
@@ -361,7 +361,7 @@ const getStatusColor = (status) => {
                                 >
                                     {{
                                         new Date(
-                                            tenant.created_at,
+                                            tenant.created_at
                                         ).toLocaleDateString()
                                     }}
                                 </td>
@@ -373,7 +373,7 @@ const getStatusColor = (status) => {
                                         :href="
                                             route(
                                                 'admin.tenants.show',
-                                                tenant.id,
+                                                tenant.id
                                             )
                                         "
                                         variant="secondary"
