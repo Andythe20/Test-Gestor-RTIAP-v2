@@ -95,7 +95,7 @@ const props = defineProps({
                                 >Ruta</label
                             >
                             <p class="text-sm text-gray-900">
-                                {{ tenant.ruta }}
+                                {{ "/" + tenant.path }}
                             </p>
                         </div>
                         <div>
