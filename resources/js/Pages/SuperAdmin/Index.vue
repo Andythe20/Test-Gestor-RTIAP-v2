@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue";
+import { ref, watch, onBeforeUnmount } from "vue";
 import { Link, useForm, usePage } from "@inertiajs/vue3";
 import Button from "@/Components/Button.vue";
 import TextInput from "@/Components/TextInput.vue";
@@ -22,9 +22,11 @@ const props = defineProps({
 
 const page = usePage();
 
+// Estados de visibilidad de formularios
 const showCreateForm = ref(false);
 const showCreateUserForm = ref(false);
 
+// Formularios
 const logoutForm = useForm({});
 const logout = () => logoutForm.post(route("logout"));
 
@@ -42,26 +44,74 @@ const userForm = useForm({
     tenant_id: null,
 });
 
-const createUser = () => {
-    if (userForm.is_admin) {
-        userForm.tenant_id = null;
-    }
-    userForm.post(route("admin.users.store"));
+// Configuración del Toast
+const toast = ref({ show: false, type: "success", message: "" });
+let toastTimer = null;
+
+const showToast = (message, type = "success") => {
+    toast.value = { show: true, type, message };
+
+    if (toastTimer) clearTimeout(toastTimer);
+
+    toastTimer = setTimeout(() => {
+        toast.value.show = false;
+    }, 3500);
 };
 
+onBeforeUnmount(() => {
+    if (toastTimer) clearTimeout(toastTimer);
+});
+
+// Watcher para capturar mensajes Flash de Laravel/Inertia
+watch(
+    () => page.props.flash,
+    (flash) => {
+        console.log("Datos recibidos en flash:", flash);
+        if (flash?.success) {
+            showToast(flash.success, "success");
+
+            // Limpiar y cerrar formularios tras éxito
+            userForm.reset();
+            form.reset();
+            showCreateUserForm.value = false;
+            showCreateForm.value = false;
+        }
+        if (flash?.error) {
+            showToast(flash.error, "error");
+        }
+    },
+    { deep: true },
+);
+
+// Lógica de creación
+const createUser = () => {
+    if (userForm.is_admin) userForm.tenant_id = null;
+
+    userForm.post(route("admin.users.store"), {
+        preserveScroll: true,
+        onSuccess: () => {
+            userForm.reset();
+        },
+    });
+};
+
+const submitForm = () => {
+    form.post(route("admin.tenants.store"), {
+        preserveScroll: true,
+    });
+};
+
+// Lógica de carga de usuarios por tenant
 const expandedTenants = ref({});
 const tenantsUsers = ref({});
 const loadingUsers = ref({});
 
 const toggleTenantExpand = async (tenant_id) => {
     expandedTenants.value[tenant_id] = !expandedTenants.value[tenant_id];
-
     if (!expandedTenants.value[tenant_id]) return;
-
     if (tenantsUsers.value[tenant_id]) return;
 
     loadingUsers.value[tenant_id] = true;
-
     try {
         const res = await axios.get(route("admin.tenants.users", tenant_id));
         tenantsUsers.value[tenant_id] = res.data.users || [];
@@ -73,16 +123,7 @@ const toggleTenantExpand = async (tenant_id) => {
     }
 };
 
-const submitForm = () => {
-    form.post(route("admin.tenants.store"), {
-        preserveScroll: true,
-        onSuccess: () => {
-            showCreateForm.value = false;
-            form.reset();
-        },
-    });
-};
-
+// Helpers de UI
 const getStatusIcon = (status) => {
     switch (status) {
         case "active":
@@ -107,11 +148,60 @@ const getStatusColor = (status) => {
 </script>
 
 <template>
+    <Teleport to="body">
+        <Transition
+            enter-active-class="transform ease-out duration-300 transition"
+            enter-from-class="translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
+            enter-to-class="translate-y-0 opacity-100 sm:translate-x-0"
+            leave-active-class="transition ease-in duration-100"
+            leave-from-class="opacity-100"
+            leave-to-class="opacity-0"
+        >
+            <div
+                v-if="toast.show"
+                class="fixed top-5 right-5 z-[100] max-w-sm w-full"
+            >
+                <div
+                    class="rounded-lg shadow-xl px-4 py-3 border flex items-start gap-3"
+                    :class="
+                        toast.type === 'success'
+                            ? 'bg-white border-green-500 text-green-800'
+                            : 'bg-white border-red-500 text-red-800'
+                    "
+                >
+                    <div class="mt-0.5 shrink-0">
+                        <font-awesome-icon
+                            :icon="toast.type === 'success' ? faCheck : faTimes"
+                            :class="
+                                toast.type === 'success'
+                                    ? 'text-green-500'
+                                    : 'text-red-500'
+                            "
+                        />
+                    </div>
+
+                    <div class="text-sm font-semibold">
+                        {{ toast.message }}
+                    </div>
+
+                    <button
+                        type="button"
+                        class="ml-auto text-gray-400 hover:text-gray-600"
+                        @click="toast.show = false"
+                    >
+                        ✕
+                    </button>
+                </div>
+            </div>
+        </Transition>
+    </Teleport>
+
     <div class="min-h-screen bg-gray-50 py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <!-- Header -->
             <div class="bg-white shadow-sm rounded-lg p-6 mb-8">
-                <div class="flex justify-between items-center">
+                <div
+                    class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+                >
                     <div>
                         <h1
                             class="text-3xl font-bold text-gray-900 flex items-center"
@@ -127,402 +217,183 @@ const getStatusColor = (status) => {
                             dedicadas
                         </p>
                     </div>
-                    <Button @click="logout" variant="secondary">
-                        Logout
-                    </Button>
-                    <Button
-                        @click="showCreateForm = !showCreateForm"
-                        class="ml-4"
-                    >
-                        <font-awesome-icon :icon="faPlus" class="mr-2" />
-                        Nuevo Tenant
-                    </Button>
-                    <Button
-                        @click="showCreateUserForm = !showCreateUserForm"
-                        class="ml-4"
-                    >
-                        <font-awesome-icon :icon="faPlus" class="mr-2" />
-                        Nuevo Usuario
-                    </Button>
-                </div>
-            </div>
-
-            <!-- Flash Messages -->
-            <div
-                v-if="page?.props?.flash?.success"
-                class="bg-green-50 border border-green-200 rounded-lg p-4 mb-8"
-            >
-                <div class="flex">
-                    <div class="shrink-0">
-                        <font-awesome-icon
-                            :icon="faCheck"
-                            class="h-5 w-5 text-green-400"
-                        />
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-green-800">
-                            {{ page.props.flash.success }}
-                        </p>
-                        <div
-                            v-if="
-                                page.props.flash.success.includes(
-                                    'credenciales',
-                                )
-                            "
-                            class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded"
+                    <div class="flex gap-2">
+                        <Button @click="logout" variant="secondary"
+                            >Logout</Button
                         >
-                            <p class="text-sm text-blue-800 font-medium">
-                                Credenciales de acceso generadas:
-                            </p>
-                            <p class="text-sm text-blue-700 mt-1">
-                                <strong>Email:</strong> admin@{{
-                                    form.path ||
-                                    (form.name
-                                        ? form.name
-                                              .toLowerCase()
-                                              .replace(/\s+/g, "") + ".app.test"
-                                        : "path")
-                                }}<br />
-                                <strong>Password:</strong> password123
-                            </p>
-                            <p class="text-xs text-blue-600 mt-2">
-                                El tenant puede usar estas credenciales para
-                                acceder a su dashboard desde la página de login.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div
-                v-if="page?.props?.flash?.error"
-                class="bg-red-50 border border-red-200 rounded-lg p-4 mb-8"
-            >
-                <div class="flex">
-                    <div class="shrink-0">
-                        <font-awesome-icon
-                            :icon="faTimes"
-                            class="h-5 w-5 text-red-400"
-                        />
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-red-800">
-                            {{ page.props.flash.error }}
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Create Form -->
-            <!-- Header clickable -->
-            <button
-                type="button"
-                class="w-full text-left bg-white shadow-sm rounded-lg p-6 mb-2 flex items-center justify-between"
-                @click="showCreateForm = !showCreateForm"
-            >
-                <h2 class="text-xl font-semibold text-gray-900">
-                    Crear Nuevo Tenant
-                </h2>
-                <span class="text-gray-500">{{
-                    showCreateForm ? "▲" : "▼"
-                }}</span>
-            </button>
-
-            <!-- Form body (fuera del button) -->
-            <div
-                v-if="showCreateForm"
-                class="bg-white shadow-sm rounded-lg p-6 mb-8"
-            >
-                <form @submit.prevent="submitForm" class="space-y-4">
-                    <input
-                        type="hidden"
-                        name="_token"
-                        :value="$page.props.csrf_token"
-                    />
-
-                    <TextInput
-                        id="name"
-                        name="name"
-                        label="Nombre del Cliente"
-                        v-model="form.name"
-                        :error="form.errors.name"
-                        required
-                    />
-
-                    <TextInput
-                        id="path"
-                        name="path"
-                        label="Ruta (opcional)"
-                        v-model="form.path"
-                        :error="form.errors.path"
-                        placeholder="Ej: gothen"
-                    />
-
-                    <TextInput
-                        id="database"
-                        name="database"
-                        label="Database (opcional)"
-                        v-model="form.database"
-                        :error="form.errors.database"
-                    />
-
-                    <div class="flex justify-end space-x-3">
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            @click="showCreateForm = false"
-                        >
-                            Cancelar
+                        <Button @click="showCreateForm = !showCreateForm">
+                            <font-awesome-icon :icon="faPlus" class="mr-2" />
+                            Nuevo Tenant
                         </Button>
-
                         <Button
-                            type="submit"
-                            :disabled="form.processing"
-                            :processing="form.processing"
+                            @click="showCreateUserForm = !showCreateUserForm"
                         >
-                            <font-awesome-icon
-                                v-if="form.processing"
-                                :icon="faClock"
-                                class="mr-2 animate-spin"
-                            />
-                            {{
-                                form.processing ? "Creando..." : "Crear Tenant"
-                            }}
+                            <font-awesome-icon :icon="faPlus" class="mr-2" />
+                            Nuevo Usuario
                         </Button>
                     </div>
-                </form>
+                </div>
             </div>
 
-            <!-- Create User -->
-            <!-- Header clickable -->
-            <button
-                type="button"
-                class="w-full text-left bg-white shadow-sm rounded-lg p-6 mb-2 flex items-center justify-between"
-                @click="showCreateUserForm = !showCreateUserForm"
+            <Transition
+                enter-active-class="transition duration-200 ease-out"
+                enter-from-class="transform scale-95 opacity-0"
+                enter-to-class="transform scale-100 opacity-100"
             >
-                <h2
-                    class="text-xl font-semibold text-gray-900 flex items-center"
+                <div
+                    v-if="showCreateForm"
+                    class="bg-white shadow-md rounded-lg p-6 mb-8 border-t-4 border-blue-500"
                 >
-                    <font-awesome-icon
-                        :icon="faUsers"
-                        class="mr-2 text-indigo-600"
-                    />
-                    Crear Nuevo Usuario
-                </h2>
-                <span class="text-gray-500">{{
-                    showCreateUserForm ? "▲" : "▼"
-                }}</span>
-            </button>
-
-            <!-- Form body (fuera del button) -->
-            <div
-                v-if="showCreateUserForm"
-                class="bg-white shadow-sm rounded-lg p-6 mb-8"
-            >
-                <form class="space-y-4">
-                    <input
-                        type="hidden"
-                        name="_token"
-                        :value="$page.props.csrf_token"
-                    />
-
-                    <TextInput
-                        id="user_name"
-                        name="user_name"
-                        label="Nombre del Usuario"
-                        v-model="userForm.name"
-                        :error="userForm.errors?.name"
-                        required
-                    />
-
-                    <TextInput
-                        id="user_email"
-                        name="user_email"
-                        label="Correo Electrónico"
-                        type="email"
-                        v-model="userForm.email"
-                        :error="userForm.errors?.email"
-                        required
-                    />
-
-                    <TextInput
-                        id="user_password"
-                        name="user_password"
-                        label="Contraseña"
-                        type="password"
-                        v-model="userForm.password"
-                        :error="userForm.errors?.password"
-                        required
-                    />
-
-                    <!-- Admin checkbox -->
-                    <div class="flex items-center justify-between">
-                        <label class="inline-flex items-center">
-                            <Checkbox
-                                v-model="userForm.is_admin"
-                                label="Usuario administrador"
-                                id="user_is_admin"
+                    <h2 class="text-xl font-bold mb-4">
+                        Configurar Nuevo Tenant
+                    </h2>
+                    <form @submit.prevent="submitForm" class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <TextInput
+                                id="name"
+                                label="Nombre del Cliente"
+                                v-model="form.name"
+                                :error="form.errors.name"
+                                required
                             />
-                        </label>
-                        <span class="text-xs text-gray-500">
-                            Por defecto marcado. Si lo desmarcas, podrás asignar
-                            el usuario a un tenant y ver sus usuarios.
-                        </span>
-                    </div>
+                            <TextInput
+                                id="path"
+                                label="Ruta (URL)"
+                                v-model="form.path"
+                                :error="form.errors.path"
+                                placeholder="ej: mi-cliente"
+                            />
+                            <TextInput
+                                id="database"
+                                label="Base de Datos"
+                                v-model="form.database"
+                                :error="form.errors.database"
+                            />
+                        </div>
+                        <div class="flex justify-end space-x-3 mt-4">
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                @click="showCreateForm = false"
+                                >Cancelar</Button
+                            >
+                            <Button
+                                type="submit"
+                                :disabled="form.processing"
+                                :processing="form.processing"
+                                >Crear Tenant</Button
+                            >
+                        </div>
+                    </form>
+                </div>
+            </Transition>
 
-                    <!-- Tenants & Users list shown when not admin -->
-                    <div
-                        v-if="!userForm.is_admin"
-                        class="mt-4 border rounded-lg"
-                    >
-                        <div class="px-4 py-3 border-b">
-                            <h3 class="text-md font-semibold text-gray-900">
-                                Asignar a Tenant y ver usuarios
-                            </h3>
-                            <p class="text-sm text-gray-600">
-                                Selecciona el tenant al que pertenecerá el
-                                usuario y revisa los usuarios existentes de cada
-                                tenant.
-                            </p>
+            <Transition
+                enter-active-class="transition duration-200 ease-out"
+                enter-from-class="transform scale-95 opacity-0"
+                enter-to-class="transform scale-100 opacity-100"
+            >
+                <div
+                    v-if="showCreateUserForm"
+                    class="bg-white shadow-md rounded-lg p-6 mb-8 border-t-4 border-indigo-500"
+                >
+                    <h2 class="text-xl font-bold mb-4">
+                        Nuevo Usuario de Sistema
+                    </h2>
+                    <form @submit.prevent="createUser" class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <TextInput
+                                id="user_name"
+                                label="Nombre completo"
+                                v-model="userForm.name"
+                                :error="userForm.errors.name"
+                                required
+                            />
+                            <TextInput
+                                id="user_email"
+                                label="Email"
+                                type="email"
+                                v-model="userForm.email"
+                                :error="userForm.errors.email"
+                                required
+                            />
+                            <TextInput
+                                id="user_password"
+                                label="Contraseña"
+                                type="password"
+                                v-model="userForm.password"
+                                :error="userForm.errors.password"
+                                required
+                            />
+                            <div class="flex items-center mt-8">
+                                <Checkbox
+                                    v-model="userForm.is_admin"
+                                    label="¿Es Administrador Global?"
+                                    id="user_is_admin"
+                                />
+                            </div>
                         </div>
 
-                        <div class="divide-y">
-                            <div
-                                v-for="tenant in tenants"
-                                :key="tenant.id"
-                                class="px-4 py-3"
-                            >
-                                <div class="flex items-center justify-between">
-                                    <div class="min-w-0">
-                                        <p
-                                            class="text-sm font-medium text-gray-900 truncate"
-                                        >
-                                            {{ tenant.name }}
-                                        </p>
-                                        <p
-                                            class="text-xs text-gray-500 truncate"
-                                        >
-                                            Ruta: {{ tenant.path || "-" }} • DB:
-                                            {{ tenant.database || "Pendiente" }}
-                                        </p>
-                                    </div>
-                                    <div class="flex items-center space-x-3">
-                                        <!-- Select tenant radio -->
-                                        <label
-                                            class="inline-flex items-center text-sm text-gray-700"
-                                        >
-                                            <input
-                                                type="radio"
-                                                name="tenant_id"
-                                                class="text-indigo-600 focus:ring-indigo-500"
-                                                :value="tenant.id"
-                                                v-model="userForm.tenant_id"
-                                            />
-                                            <span class="ml-2"
-                                                >Seleccionar</span
-                                            >
-                                        </label>
-                                        <button
-                                            type="button"
-                                            class="text-sm text-indigo-600 hover:text-indigo-800"
-                                            @click="
-                                                toggleTenantExpand(tenant.id)
-                                            "
-                                        >
-                                            {{
-                                                expandedTenants[tenant.id]
-                                                    ? "Ocultar usuarios"
-                                                    : "Ver usuarios"
-                                            }}
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <!-- Nested users list -->
-                                <div
-                                    v-if="expandedTenants[tenant.id]"
-                                    class="mt-3 bg-gray-50 rounded-md p-3"
+                        <div
+                            v-if="!userForm.is_admin"
+                            class="mt-4 border rounded-lg overflow-hidden"
+                        >
+                            <div class="bg-gray-50 px-4 py-2 border-b">
+                                <span class="text-sm font-semibold"
+                                    >Asignar a un Tenant:</span
                                 >
-                                    <div
-                                        class="flex items-center mb-2 text-gray-700"
-                                    >
-                                        <font-awesome-icon
-                                            :icon="faUsers"
-                                            class="mr-2"
+                            </div>
+                            <div class="max-height-60 overflow-y-auto divide-y">
+                                <div
+                                    v-for="tenant in tenants"
+                                    :key="tenant.id"
+                                    class="p-3 flex items-center justify-between hover:bg-gray-50"
+                                >
+                                    <div class="flex items-center">
+                                        <input
+                                            type="radio"
+                                            :value="tenant.id"
+                                            v-model="userForm.tenant_id"
+                                            class="mr-3"
                                         />
-                                        <span class="text-sm font-medium"
-                                            >Usuarios del tenant</span
-                                        >
+                                        <span class="text-sm">{{
+                                            tenant.name
+                                        }}</span>
                                     </div>
-                                    <ul class="space-y-2">
-                                        <li
-                                            v-if="loadingUsers[tenant.id]"
-                                            class="text-xs text-gray-500"
-                                        >
-                                            Cargando Usuarios
-                                        </li>
-                                        <li
-                                            v-else-if="
-                                                !tenantsUsers[tenant.id] ||
-                                                tenantsUsers[tenant.id]
-                                                    .length === 0
-                                            "
-                                            class="text-xs text-gray-500"
-                                        >
-                                            No hay usuarios disponibles para
-                                            este tenant
-                                        </li>
-                                        <li
-                                            v-else
-                                            v-for="u in tenantsUsers[tenant.id]"
-                                            :key="u.id"
-                                            class="flex items-center justify-between text-sm bg-white px-3 py-2 rounded border"
-                                        >
-                                            <div class="min-w-0">
-                                                <p
-                                                    class="font-medium text-gray-900 truncate"
-                                                >
-                                                    {{ u.name }}
-                                                </p>
-                                                <p
-                                                    class="text-xs text-gray-500 truncate"
-                                                >
-                                                    {{ u.email }}
-                                                </p>
-                                            </div>
-                                            <span
-                                                class="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700"
-                                                >{{
-                                                    u.is_admin
-                                                        ? "Admin"
-                                                        : "Tenant"
-                                                }}</span
-                                            >
-                                        </li>
-                                    </ul>
+                                    <button
+                                        type="button"
+                                        @click="toggleTenantExpand(tenant.id)"
+                                        class="text-xs text-indigo-600"
+                                    >
+                                        {{
+                                            expandedTenants[tenant.id]
+                                                ? "Cerrar"
+                                                : "Ver usuarios"
+                                        }}
+                                    </button>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="flex justify-end space-x-3 mt-6">
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            @click="showCreateUserForm = false"
-                        >
-                            Cancelar
-                        </Button>
-                        <Button type="button" @click="createUser">
-                            Crear Usuario
-                        </Button>
-                    </div>
-                </form>
-            </div>
+                        <div class="flex justify-end space-x-3 mt-6">
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                @click="showCreateUserForm = false"
+                                >Cancelar</Button
+                            >
+                            <Button
+                                type="submit"
+                                :disabled="userForm.processing"
+                                >Registrar Usuario</Button
+                            >
+                        </div>
+                    </form>
+                </div>
+            </Transition>
 
-            <!-- Tenants List -->
             <div class="bg-white shadow-sm rounded-lg overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-200">
+                <div class="px-6 py-4 border-b border-gray-200 bg-white">
                     <h2 class="text-xl font-semibold text-gray-900">
                         Tenants Registrados ({{ tenants.length }})
                     </h2>
@@ -530,16 +401,13 @@ const getStatusColor = (status) => {
 
                 <div
                     v-if="tenants.length === 0"
-                    class="p-8 text-center text-gray-500"
+                    class="p-12 text-center text-gray-500"
                 >
                     <font-awesome-icon
                         :icon="faDatabase"
-                        class="text-4xl mb-4 text-gray-300"
+                        class="text-5xl mb-4 text-gray-200"
                     />
-                    <p>No hay tenants registrados aún.</p>
-                    <p class="text-sm">
-                        Haz clic en "Nuevo Tenant" para crear el primero.
-                    </p>
+                    <p>No se encontraron registros de tenants.</p>
                 </div>
 
                 <div v-else class="overflow-x-auto">
@@ -547,34 +415,29 @@ const getStatusColor = (status) => {
                         <thead class="bg-gray-50">
                             <tr>
                                 <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
                                 >
                                     Cliente
                                 </th>
                                 <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
                                 >
                                     Ruta
                                 </th>
                                 <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
                                 >
                                     Base de Datos
                                 </th>
                                 <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
                                 >
                                     Estado
                                 </th>
                                 <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
                                 >
-                                    Creado
-                                </th>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                >
-                                    Acceder
+                                    Acciones
                                 </th>
                             </tr>
                         </thead>
@@ -582,36 +445,15 @@ const getStatusColor = (status) => {
                             <tr
                                 v-for="tenant in tenants"
                                 :key="tenant.id"
-                                class="hover:bg-gray-50"
+                                class="hover:bg-gray-50 transition-colors"
                             >
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex items-center">
-                                        <div class="flex-shrink-0 h-10 w-10">
-                                            <div
-                                                class="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center"
-                                            >
-                                                <span
-                                                    class="text-white font-medium text-sm"
-                                                >
-                                                    {{
-                                                        tenant.name
-                                                            .charAt(0)
-                                                            .toUpperCase()
-                                                    }}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div class="ml-4">
-                                            <div
-                                                class="text-sm font-medium text-gray-900"
-                                            >
-                                                {{ tenant.name }}
-                                            </div>
-                                        </div>
+                                    <div class="font-medium text-gray-900">
+                                        {{ tenant.name }}
                                     </div>
                                 </td>
                                 <td
-                                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-600"
                                 >
                                     {{ tenant.path }}
                                 </td>
@@ -633,29 +475,19 @@ const getStatusColor = (status) => {
                                     </span>
                                 </td>
                                 <td
-                                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                                    class="px-6 py-4 whitespace-nowrap text-right text-sm"
                                 >
-                                    {{
-                                        new Date(
-                                            tenant.created_at,
-                                        ).toLocaleDateString()
-                                    }}
-                                </td>
-
-                                <td
-                                    class="px-6 py-4 whitespace-nowrap text-center"
-                                >
-                                    <Button
+                                    <Link
                                         :href="
                                             route(
                                                 'admin.tenants.show',
                                                 tenant.id,
                                             )
                                         "
-                                        variant="secondary"
-                                        :icon="faArrowRight"
-                                        iconOnly
-                                    />
+                                        class="text-blue-600 hover:text-blue-900"
+                                    >
+                                        Ver detalles
+                                    </Link>
                                 </td>
                             </tr>
                         </tbody>
