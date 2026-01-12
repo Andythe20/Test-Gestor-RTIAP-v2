@@ -11,17 +11,21 @@ return [
             'database' => env('LANDLORD_DB_DATABASE', env('DB_DATABASE', 'landlord')),
             'username' => env('LANDLORD_DB_USERNAME', env('DB_USERNAME', 'landlord_app')),
             'password' => env('LANDLORD_DB_PASSWORD', env('DB_PASSWORD', '')),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'strict' => true,
         ],
 
         'tenant' => [
             'driver' => 'mysql',
             'host' => env('TENANT_DB_HOST', '127.0.0.1'),
             'port' => env('TENANT_DB_PORT', 3306),
-
-            // se llena en el runtime
             'database' => null,
             'username' => null,
             'password' => null,
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'strict' => true,
         ],
         'provisioner' => [
             'driver' => 'mysql',

@@ -17,20 +17,28 @@ class TenantProvisioner
         $normalizedName = trim($normalizedName, '_');
 
         if (empty($tenant->database)) {
-            $tenant->database = $normalizedName.'_DB';
+            $tenant->database = $normalizedName.'_db';
         }
-        $dbName = $tenant->database;
 
         if (empty($tenant->db_username)) {
             $tenant->db_username = $normalizedName.'_app';
         }
-        $dbUsername = $tenant->db_username;
 
+        $dbName = $tenant->database;
+        $dbUsername = $tenant->db_username;
         $demoPassword = 'Tenant.1234';
         $mysqlUserHost = env('TENANT_MYSQL_USER_HOST', 'localhost');
 
+        // Validación fuerte (identificadores SQL)
+        if (! preg_match('/^[a-z0-9_]{1,64}$/', $dbName)) {
+            throw new \RuntimeException("DB inválida: {$dbName}");
+        }
+        if (! preg_match('/^[a-z0-9_]{1,64}$/', $dbUsername)) {
+            throw new \RuntimeException("Usuario MySQL inválido: {$dbUsername}");
+        }
+
         DB::connection('provisioner')->statement("CREATE DATABASE IF NOT EXISTS `$dbName` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-        DB::connection('provisioner')->statement("CREATE USER IF NOT EXISTS {$dbUsername}'@'{$mysqlUserHost}' IDENTIFIED BY '{$demoPassword}'");
+        DB::connection('provisioner')->statement("CREATE USER IF NOT EXISTS '{$dbUsername}'@'{$mysqlUserHost}' IDENTIFIED BY '{$demoPassword}'");
 
         DB::connection('provisioner')->statement(
             "ALTER USER '{$tenant->db_username}'@'{$mysqlUserHost}' IDENTIFIED BY '{$demoPassword}'"
@@ -41,8 +49,6 @@ class TenantProvisioner
             ON `$dbName`.*
             TO '{$dbUsername}'@'{$mysqlUserHost}'
         ");
-
-        DB::connection('provisioner')->statement('FLUSH PRIVILEGES');
 
         $tenant->status = 'provisioning';
         $tenant->save();
