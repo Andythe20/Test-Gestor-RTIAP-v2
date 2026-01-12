@@ -18,6 +18,14 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin.token' => \App\Http\Middleware\EnsureAdminToken::class,
         ]);
 
+        // Ensure the XSRF-TOKEN cookie is not encrypted so client-side code
+        // can read and send the raw token in the X-XSRF-TOKEN header. If the
+        // cookie is encrypted the header would contain the encrypted value
+        // and the CSRF check would fail with a 419 on initial requests.
+        $middleware->encryptCookies(except: [
+            'XSRF-TOKEN',
+        ]);
+
         $middleware->validateCsrfTokens(except: [
             '/login',
             '/logout',
