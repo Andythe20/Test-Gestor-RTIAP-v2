@@ -37,19 +37,12 @@ class TenantsController extends Controller
     public function show(Tenant $tenant)
     {
         try {
-            // Ensure the tenant DB connection config is populated using the
-            // stored credentials (password is stored encrypted). If the
-            // credentials are missing we surface a clear error so the
-            // tenant won't be switched to the tenant connection and a useful
-            // message is saved in the tenant record.
             $decryptedPassword = $tenant->getDecryptedDbPassword();
 
             if (empty($tenant->database) || empty($tenant->db_username) || empty($decryptedPassword)) {
                 throw new \RuntimeException('Tenant database credentials are missing or incomplete.');
             }
 
-            // Configure the runtime "tenant" connection so queries executed
-            // after makeCurrent() will use the correct database/credentials.
             config(['database.connections.tenant' => [
                 'driver' => 'mysql',
                 'host' => env('TENANT_DB_HOST', env('DB_HOST', '127.0.0.1')),
@@ -83,17 +76,11 @@ class TenantsController extends Controller
                 'error' => null,
             ]);
         } catch (\Throwable $e) {
-            // Log the exception for easier debugging and store the error on the
-            // tenant record so the admin can inspect what went wrong later.
             logger()->error('Error rendering tenant info: '.$e->getMessage(), [
                 'exception' => $e,
                 'tenant_id' => $tenant->id,
             ]);
 
-            // Don't change the tenant status here: a read-only error when
-            // rendering the info page (for example due to DB credentials or
-            // privileges) shouldn't automatically mark the tenant as failed.
-            // Only persist the error message so admins can inspect it.
             $tenant->forceFill([
                 'error_message' => $e->getMessage(),
             ])->save();
@@ -138,13 +125,22 @@ class TenantsController extends Controller
             if (! $tenant->password) {
                 $password = 'hola123';
             }
+
             $email = $data['email'] ?? null;
+
             if (! is_string($email) || trim($email) === '') {
                 $email = 'admin@'.$tenant->path.'.cl';
             }
+            if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                if ($request->expectsJson()) {
+                    return response()->json(['message' => 'Email inválido'], 422);
+                }
+
+                return redirect()->back()->with('error', 'Email inválido');
+            }
 
             User::create([
-                'name' => $tenant->name.'Admin',
+                'name' => $tenant->name,
                 'email' => $email,
                 'password' => $password,
                 'role' => 'tenant',
