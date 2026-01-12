@@ -92,10 +92,10 @@ const props = defineProps({
                         </div>
                         <div>
                             <label class="text-sm font-medium text-gray-500"
-                                >Dominio</label
+                                >Ruta</label
                             >
                             <p class="text-sm text-gray-900">
-                                {{ tenant.domain }}
+                                {{ "/" + tenant.path }}
                             </p>
                         </div>
                         <div>
@@ -113,7 +113,7 @@ const props = defineProps({
                             <p class="text-sm text-gray-900">
                                 {{
                                     new Date(
-                                        tenant.created_at
+                                        tenant.created_at,
                                     ).toLocaleDateString()
                                 }}
                             </p>
