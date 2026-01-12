@@ -18,6 +18,7 @@ class LandlordAdminSeeder extends Seeder
             [
                 'name' => 'Super Admin',
                 'password' => Hash::make($password),
+                'is_admin' => 1,
                 'role' => 'admin',
                 'tenant_id' => null,
                 'database' => null,

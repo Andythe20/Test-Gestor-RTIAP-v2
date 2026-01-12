@@ -6,7 +6,6 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class AuthController extends Controller
@@ -46,12 +45,10 @@ class AuthController extends Controller
                 ])->toResponse($request)->setStatusCode(422);
             }
 
-            // If the client expects JSON, return a plain 422 JSON response (useful for API calls)
             if ($request->expectsJson() || $request->wantsJson()) {
                 return response()->json(['errors' => ['email' => $message]], 422);
             }
 
-            // Use redirect with session errors so Inertia updates page.props.errors
             return redirect()->back()
                 ->withErrors(['email' => $message])
                 ->withInput($request->only('email'));
@@ -64,14 +61,13 @@ class AuthController extends Controller
 
     public function redirectAfterLogin(User $user)
     {
-        // admin
-        if ($user->role === 'admin') {
+        if ($user->is_admin) {
             return redirect('/admin');
         }
 
         // Tenant
 
-        if (! $user->role === 'tenant') {
+        if (! $user->tenant_id) {
             Auth::logout();
             request()->session()->invalidate();
             request()->session()->regenerateToken();
@@ -79,7 +75,7 @@ class AuthController extends Controller
             return redirect('/login')->withErrors(['email' => 'Tu usuario no tiene tenant asignado']);
         }
 
-        return redirect('/t/' . $user->tenant->path);
+        return redirect('/t/'.$user->tenant->path);
     }
 
     public function logout(Request $request)
