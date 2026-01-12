@@ -8,12 +8,13 @@ use App\Models\Empresa;
 use App\Models\Producto;
 use App\Models\Sucursal;
 use App\Models\Tenant;
+use App\Models\User;
 use App\Models\Venta;
 use App\Services\TenantProvisioner;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
-use Illuminate\Support\Facades\DB;
 
 class TenantsController extends Controller
 {
@@ -84,7 +85,7 @@ class TenantsController extends Controller
         } catch (\Throwable $e) {
             // Log the exception for easier debugging and store the error on the
             // tenant record so the admin can inspect what went wrong later.
-            logger()->error('Error rendering tenant info: ' . $e->getMessage(), [
+            logger()->error('Error rendering tenant info: '.$e->getMessage(), [
                 'exception' => $e,
                 'tenant_id' => $tenant->id,
             ]);
@@ -139,11 +140,11 @@ class TenantsController extends Controller
             }
             $email = $data['email'] ?? null;
             if (! is_string($email) || trim($email) === '') {
-                $email = 'admin@' . $tenant->path . '.cl';
+                $email = 'admin@'.$tenant->path.'.cl';
             }
 
-            \App\Models\User::create([
-                'name' => $tenant->name . 'Admin',
+            User::create([
+                'name' => $tenant->name.'Admin',
                 'email' => $email,
                 'password' => $password,
                 'role' => 'tenant',
@@ -171,7 +172,7 @@ class TenantsController extends Controller
             }
 
             return redirect()->route('admin.home')
-                ->with('error', 'Error al crear tenant: ' . $e->getMessage());
+                ->with('error', 'Error al crear tenant: '.$e->getMessage());
         }
     }
 }
