@@ -13,6 +13,7 @@ use App\Services\TenantProvisioner;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
 
 class TenantsController extends Controller
 {
@@ -35,6 +36,34 @@ class TenantsController extends Controller
     public function show(Tenant $tenant)
     {
         try {
+            // Ensure the tenant DB connection config is populated using the
+            // stored credentials (password is stored encrypted). If the
+            // credentials are missing we surface a clear error so the
+            // tenant won't be switched to the tenant connection and a useful
+            // message is saved in the tenant record.
+            $decryptedPassword = $tenant->getDecryptedDbPassword();
+
+            if (empty($tenant->database) || empty($tenant->db_username) || empty($decryptedPassword)) {
+                throw new \RuntimeException('Tenant database credentials are missing or incomplete.');
+            }
+
+            // Configure the runtime "tenant" connection so queries executed
+            // after makeCurrent() will use the correct database/credentials.
+            config(['database.connections.tenant' => [
+                'driver' => 'mysql',
+                'host' => env('TENANT_DB_HOST', env('DB_HOST', '127.0.0.1')),
+                'port' => env('TENANT_DB_PORT', env('DB_PORT', '3306')),
+                'database' => $tenant->database,
+                'username' => $tenant->db_username,
+                'password' => $decryptedPassword,
+                'charset' => 'utf8mb4',
+                'collation' => 'utf8mb4_unicode_ci',
+                'strict' => true,
+            ]]);
+
+            DB::purge('tenant');
+            DB::reconnect('tenant');
+
             $tenant->makeCurrent();
             $empresa = Empresa::query()->first();
             $sucursales = Sucursal::query()->get();
@@ -60,8 +89,11 @@ class TenantsController extends Controller
                 'tenant_id' => $tenant->id,
             ]);
 
+            // Don't change the tenant status here: a read-only error when
+            // rendering the info page (for example due to DB credentials or
+            // privileges) shouldn't automatically mark the tenant as failed.
+            // Only persist the error message so admins can inspect it.
             $tenant->forceFill([
-                'status' => 'failed',
                 'error_message' => $e->getMessage(),
             ])->save();
 
