@@ -30,7 +30,7 @@ class TenantContext
         }
 
         // Admin opcional: deja pasar
-        if ($user->role !== 'admin' && (int) $user->tenant_id !== (int) $tenant->id) {
+        if (! $user->is_admin && (int) $user->tenant_id !== (int) $tenant->id) {
             abort(403);
         }
 

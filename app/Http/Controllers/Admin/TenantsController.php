@@ -7,10 +7,10 @@ use App\Models\Empleado;
 use App\Models\Empresa;
 use App\Models\Producto;
 use App\Models\Sucursal;
+use App\Models\Tarjeta;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Venta;
-use App\Models\Tarjeta;
 use App\Services\TenantProvisioner;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -55,7 +55,6 @@ class TenantsController extends Controller
             DB::purge('tenant');
             DB::reconnect('tenant');
 
-
             $tenant->makeCurrent();
             $empresa = Empresa::on('tenant')->first();
             $sucursales = Sucursal::on('tenant')->get();
@@ -88,7 +87,7 @@ class TenantsController extends Controller
                 'error' => null,
             ]);
         } catch (\Throwable $e) {
-            logger()->error('Error rendering tenant info: ' . $e->getMessage(), [
+            logger()->error('Error rendering tenant info: '.$e->getMessage(), [
                 'exception' => $e,
                 'tenant_id' => $tenant->id,
             ]);
@@ -141,7 +140,7 @@ class TenantsController extends Controller
             $password = $data['password'] ?? 'hola123';
 
             if (! is_string($email) || trim($email) === '') {
-                $email = 'admin@' . $tenant->path . '.cl';
+                $email = 'admin@'.$tenant->path.'.cl';
             }
             if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 if ($request->expectsJson()) {
@@ -164,11 +163,6 @@ class TenantsController extends Controller
                 return response()->json($tenant->fresh(), 201);
             }
 
-            /**
-             * Redirigir a la página principal del administrador (GET /admin) en lugar de volver
-             * a la URL de POST (/admin/tenants). Redirigir después de un POST puede provocar que
-             * el navegador ejecute un GET en la ruta POST no definida (Método no permitido).
-             * Use la ruta especificada para la página de inicio del administrador para que el cliente reciba un GET correcto.*/
             return redirect()->route('admin.home')
                 ->with('success', 'Tenant creado exitosamente. Base de datos provisionada y credenciales de acceso generadas.'); // Para Front
 
@@ -180,20 +174,27 @@ class TenantsController extends Controller
             }
 
             return redirect()->route('admin.home')
-                ->with('error', 'Error al crear tenant: ' . $e->getMessage());
+                ->with('error', 'Error al crear tenant: '.$e->getMessage());
         }
     }
 
-    /**
-     * Seed demo data into the specified tenant database (admin-triggered).
-     */
+    public function users(Tenant $tenant)
+    {
+        $users = User::on('landlord')
+            ->select('id', 'name', 'email', 'tenant_id', 'is_admin', 'created_at')
+            ->where('tenant_id', $tenant->id)
+            ->orderByDesc('created_at')
+            ->get();
+
+        return response()->json([
+            'tenant_id' => $tenant->id,
+            'users' => $users,
+        ]);
+    }
+
     public function seed(Tenant $tenant)
     {
         try {
-            // Determine which password to use: prefer the stored (decrypted)
-            // password, but if it's missing, fall back to the known demo
-            // password used during provisioning and persist it after a
-            // successful connection.
             $decryptedPassword = $tenant->getDecryptedDbPassword();
             $candidatePassword = $decryptedPassword ?: env('TENANT_DEMO_PASSWORD', 'Tenant.1234');
 
@@ -202,7 +203,6 @@ class TenantsController extends Controller
                     ->with('error', 'Credenciales de BD del tenant incompletas.');
             }
 
-            // Configure and connect to the tenant DB at runtime
             config(['database.connections.tenant' => [
                 'driver' => 'mysql',
                 'host' => env('TENANT_DB_HOST', env('DB_HOST', '127.0.0.1')),
@@ -218,8 +218,6 @@ class TenantsController extends Controller
             DB::purge('tenant');
             DB::reconnect('tenant');
 
-            // Quick connectivity check; if this fails, credentials are wrong
-            // and we should not proceed with seeding.
             DB::connection('tenant')->select('SELECT 1');
 
             $tenant->makeCurrent();
@@ -243,7 +241,7 @@ class TenantsController extends Controller
             return redirect()->route('admin.tenants.show', $tenant->id)
                 ->with('success', 'Datos de ejemplo insertados en el tenant.');
         } catch (\Throwable $e) {
-            logger()->error('Error seeding tenant demo data: ' . $e->getMessage(), [
+            logger()->error('Error seeding tenant demo data: '.$e->getMessage(), [
                 'exception' => $e,
                 'tenant_id' => $tenant->id,
             ]);
@@ -251,7 +249,7 @@ class TenantsController extends Controller
             $tenant->forceFill(['error_message' => $e->getMessage()])->save();
 
             return redirect()->route('admin.tenants.show', $tenant->id)
-                ->with('error', 'Error al insertar datos de ejemplo: ' . $e->getMessage());
+                ->with('error', 'Error al insertar datos de ejemplo: '.$e->getMessage());
         } finally {
             try {
                 $tenant->forgetCurrent();

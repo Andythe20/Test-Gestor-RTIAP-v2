@@ -25,7 +25,10 @@ class User extends Authenticatable
         'password',
         'database',
         'tenant_id',
+        'is_admin',
     ];
+
+    protected $casts = ['is_admin' => 'boolean'];
 
     /**
      * The attributes that should be hidden for serialization.
