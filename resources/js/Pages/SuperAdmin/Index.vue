@@ -363,9 +363,6 @@ const getStatusColor = (status) => {
                                 label="Usuario administrador"
                                 id="user_is_admin"
                             />
-                            <span class="ml-2 text-sm text-gray-700"
-                                >Usuario administrador</span
-                            >
                         </label>
                         <span class="text-xs text-gray-500">
                             Por defecto marcado. Si lo desmarcas, podrás asignar
