@@ -87,7 +87,7 @@ class TenantsController extends Controller
                 'error' => null,
             ]);
         } catch (\Throwable $e) {
-            logger()->error('Error rendering tenant info: '.$e->getMessage(), [
+            logger()->error('Error rendering tenant info: ' . $e->getMessage(), [
                 'exception' => $e,
                 'tenant_id' => $tenant->id,
             ]);
@@ -120,6 +120,7 @@ class TenantsController extends Controller
             'name' => ['required', 'string'],
             'path' => ['nullable', 'string', 'unique:tenants,path'],
             'database' => ['nullable', 'string', 'unique:tenants,database'],
+            'api_only' => ['nullable', 'boolean'], // Nuevo campo para indicar si es solo API
         ]);
 
         $name = trim($data['name']);
@@ -138,26 +139,43 @@ class TenantsController extends Controller
 
             $email = $data['email'] ?? null;
             $password = $data['password'] ?? 'hola123';
+            $apiOnly = $request->boolean('api_only'); // Obtener el valor de api_only
 
-            if (! is_string($email) || trim($email) === '') {
-                $email = 'admin@'.$tenant->path.'.cl';
-            }
-            if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                if ($request->expectsJson()) {
-                    return response()->json(['message' => 'Email inválido'], 422);
+            // If not API-only, create the default tenant user
+            if (! $apiOnly) {
+                if (! is_string($email) || trim($email) === '') {
+                    $email = 'admin@' . $tenant->path . '.cl';
+                }
+                if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    if ($request->expectsJson()) {
+                        return response()->json(['message' => 'Email inválido'], 422);
+                    }
+
+                    return redirect()->back()->with('error', 'Email inválido');
                 }
 
-                return redirect()->back()->with('error', 'Email inválido');
+                User::create([
+                    'name' => $tenant->name,
+                    'email' => $email,
+                    'password' => $password,
+                    'role' => 'tenant',
+                    'tenant_id' => $tenant->id,
+                    'database' => $tenant->database,
+                ]);
             }
 
-            User::create([
-                'name' => $tenant->name,
-                'email' => $email,
-                'password' => $password,
-                'role' => 'tenant',
-                'tenant_id' => $tenant->id,
-                'database' => $tenant->database,
-            ]);
+            // If API-only, generate an API token and return it (only shown once)
+            if ($apiOnly) {
+                $token = $tenant->generateApiToken();
+
+                if ($request->expectsJson()) {
+                    return response()->json(['tenant' => $tenant->fresh(), 'api_token' => $token], 201);
+                }
+
+                return redirect()->route('admin.home')
+                    ->with('success', 'Tenant creado exitosamente. Base de datos provisionada (API-only).')
+                    ->with('api_token', $token);
+            }
 
             if ($request->expectsJson()) { // Para pruebas
                 return response()->json($tenant->fresh(), 201);
@@ -174,7 +192,7 @@ class TenantsController extends Controller
             }
 
             return redirect()->route('admin.home')
-                ->with('error', 'Error al crear tenant: '.$e->getMessage());
+                ->with('error', 'Error al crear tenant: ' . $e->getMessage());
         }
     }
 
@@ -241,7 +259,7 @@ class TenantsController extends Controller
             return redirect()->route('admin.tenants.show', $tenant->id)
                 ->with('success', 'Datos de ejemplo insertados en el tenant.');
         } catch (\Throwable $e) {
-            logger()->error('Error seeding tenant demo data: '.$e->getMessage(), [
+            logger()->error('Error seeding tenant demo data: ' . $e->getMessage(), [
                 'exception' => $e,
                 'tenant_id' => $tenant->id,
             ]);
@@ -249,7 +267,7 @@ class TenantsController extends Controller
             $tenant->forceFill(['error_message' => $e->getMessage()])->save();
 
             return redirect()->route('admin.tenants.show', $tenant->id)
-                ->with('error', 'Error al insertar datos de ejemplo: '.$e->getMessage());
+                ->with('error', 'Error al insertar datos de ejemplo: ' . $e->getMessage());
         } finally {
             try {
                 $tenant->forgetCurrent();
