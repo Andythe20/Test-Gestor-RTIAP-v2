@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue";
+import { ref, nextTick, watch } from "vue";
 import { Link, useForm, usePage } from "@inertiajs/vue3";
 import Button from "@/Components/Button.vue";
 import TextInput from "@/Components/TextInput.vue";
@@ -25,6 +25,9 @@ const page = usePage();
 
 const showCreateForm = ref(false);
 const showCreateUserForm = ref(false);
+const apiToken = ref(null);
+const showTokenModal = ref(false);
+const copySuccess = ref(false);
 
 const logoutForm = useForm({});
 const logout = () => logoutForm.post(route("logout"));
@@ -77,9 +80,39 @@ const toggleTenantExpand = async (tenant_id) => {
 const submitForm = () => {
     form.post(route("admin.tenants.store"), {
         preserveScroll: true,
-        onSuccess: () => {
+        onSuccess: async (inertiaPage) => {
             showCreateForm.value = false;
             form.reset();
+
+            // Helpful logs to inspect what Inertia returns (debugging timing)
+            try {
+                console.log("onSuccess inertiaPage (arg)", inertiaPage);
+                console.log("onSuccess usePage()", page);
+            } catch (e) {
+                console.log("page log failed", e);
+            }
+
+            // Wait a tick to ensure reactive props update
+            await nextTick();
+
+            const token =
+                // propiedad explícita proporcionada por el controlador (más confiable)
+                (page && page.props && page.props.api_token) ||
+                (inertiaPage &&
+                    inertiaPage.props &&
+                    inertiaPage.props.flash &&
+                    inertiaPage.props.flash.api_token) ||
+                (page &&
+                    page.props &&
+                    page.props.flash &&
+                    page.props.flash.api_token) ||
+                null;
+
+            console.log("resolved token", token);
+            if (token) {
+                apiToken.value = token;
+                showTokenModal.value = true;
+            }
         },
     });
 };
@@ -103,6 +136,22 @@ const getStatusColor = (status) => {
             return "text-red-600 bg-red-100";
         default:
             return "text-yellow-600 bg-yellow-100";
+    }
+};
+
+const closeTokenModal = () => {
+    showTokenModal.value = false;
+    apiToken.value = null;
+    form.reset();
+};
+
+const copyToken = async () => {
+    try {
+        await navigator.clipboard.writeText(apiToken.value || "");
+        copySuccess.value = true;
+        setTimeout(() => (copySuccess.value = false), 3000);
+    } catch (e) {
+        console.error("Copy failed", e);
     }
 };
 </script>
@@ -145,6 +194,50 @@ const getStatusColor = (status) => {
                     >
                         Nuevo Usuario
                     </Button>
+                </div>
+            </div>
+
+            <!-- Token Modal -->
+            <div
+                v-if="showTokenModal"
+                class="fixed inset-0 z-50 flex items-center justify-center"
+            >
+                <div
+                    class="fixed inset-0 bg-black opacity-40"
+                    @click="closeTokenModal"
+                ></div>
+                <div
+                    class="bg-white rounded-lg shadow-lg p-6 z-10 w-full max-w-lg"
+                >
+                    <h3 class="text-lg font-semibold mb-3">
+                        API Token (guárdalo ahora)
+                    </h3>
+                    <p class="text-sm text-gray-600 mb-4">
+                        Este token se mostrará sólo una vez. Copia y guárdalo en
+                        un lugar seguro.
+                    </p>
+                    <div
+                        class="bg-gray-50 border border-gray-200 rounded p-3 break-all mb-4"
+                    >
+                        <code class="text-sm">{{ apiToken }}</code>
+                        <p
+                            v-if="copySuccess"
+                            class="text-sm text-green-600 mt-2"
+                        >
+                            Copiado al portapapeles
+                        </p>
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            @click="closeTokenModal"
+                            >Cerrar</Button
+                        >
+                        <Button type="button" @click="copyToken">{{
+                            copySuccess ? "Copiado" : "Copiar token"
+                        }}</Button>
+                    </div>
                 </div>
             </div>
 

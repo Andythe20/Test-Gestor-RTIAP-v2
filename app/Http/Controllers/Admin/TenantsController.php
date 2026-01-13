@@ -31,8 +31,15 @@ class TenantsController extends Controller
     {
         $tenants = Tenant::query()->orderByDesc('created_at')->get();
 
+        /**
+         * Si después de crear un tenant se mostró un token de API en la sesión,
+         * se pasa de forma explícita como una prop para que el cliente pueda leerlo
+         */
+        $apiToken = session('api_token');
+
         return Inertia::render('SuperAdmin/Index', [
             'tenants' => $tenants,
+            'api_token' => $apiToken,
         ]);
     }
 
