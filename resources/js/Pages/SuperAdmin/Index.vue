@@ -1,5 +1,5 @@
 <script setup>
-import { ref, nextTick, watch } from "vue";
+import { ref, nextTick, watch, onBeforeUnmount } from "vue";
 import { Link, useForm, usePage } from "@inertiajs/vue3";
 import Button from "@/Components/Button.vue";
 import TextInput from "@/Components/TextInput.vue";
@@ -23,12 +23,16 @@ const props = defineProps({
 
 const page = usePage();
 
+// Estados de visibilidad de formularios
 const showCreateForm = ref(false);
 const showCreateUserForm = ref(false);
+
+// Estados de token
 const apiToken = ref(null);
 const showTokenModal = ref(false);
 const copySuccess = ref(false);
 
+// Formularios
 const logoutForm = useForm({});
 const logout = () => logoutForm.post(route("logout"));
 
@@ -46,35 +50,56 @@ const userForm = useForm({
     tenant_id: null,
 });
 
+// Configuración del Toast
+const toast = ref({ show: false, type: "success", message: "" });
+let toastTimer = null;
+
+const showToast = (message, type = "success") => {
+    toast.value = { show: true, type, message };
+
+    if (toastTimer) clearTimeout(toastTimer);
+
+    toastTimer = setTimeout(() => {
+        toast.value.show = false;
+    }, 3500);
+};
+
+onBeforeUnmount(() => {
+    if (toastTimer) clearTimeout(toastTimer);
+});
+
+// Watcher para capturar mensajes Flash de Laravel/Inertia
+watch(
+    () => page.props.flash,
+    (flash) => {
+        console.log("Datos recibidos en flash:", flash);
+        if (flash?.success) {
+            showToast(flash.success, "success");
+
+            // Limpiar y cerrar formularios tras éxito
+            userForm.reset();
+            form.reset();
+            showCreateUserForm.value = false;
+            showCreateForm.value = false;
+        }
+        if (flash?.error) {
+            showToast(flash.error, "error");
+        }
+    },
+    { deep: true }
+);
+
+// Lógica de creación
 const createUser = () => {
     if (userForm.is_admin) {
         userForm.tenant_id = null;
     }
-    userForm.post(route("admin.users.store"));
-};
-
-const expandedTenants = ref({});
-const tenantsUsers = ref({});
-const loadingUsers = ref({});
-
-const toggleTenantExpand = async (tenant_id) => {
-    expandedTenants.value[tenant_id] = !expandedTenants.value[tenant_id];
-
-    if (!expandedTenants.value[tenant_id]) return;
-
-    if (tenantsUsers.value[tenant_id]) return;
-
-    loadingUsers.value[tenant_id] = true;
-
-    try {
-        const res = await axios.get(route("admin.tenants.users", tenant_id));
-        tenantsUsers.value[tenant_id] = res.data.users || [];
-    } catch (e) {
-        tenantsUsers.value[tenant_id] = [];
-        console.error(e);
-    } finally {
-        loadingUsers.value[tenant_id] = false;
-    }
+    userForm.post(route("admin.users.store"), {
+        preserveScroll: true,
+        onSuccess: () => {
+            userForm.reset();
+        },
+    });
 };
 
 const submitForm = () => {
@@ -117,6 +142,32 @@ const submitForm = () => {
     });
 };
 
+// Lógica de carga de usuarios por tenant
+const expandedTenants = ref({});
+const tenantsUsers = ref({});
+const loadingUsers = ref({});
+
+const toggleTenantExpand = async (tenant_id) => {
+    expandedTenants.value[tenant_id] = !expandedTenants.value[tenant_id];
+
+    if (!expandedTenants.value[tenant_id]) return;
+
+    if (tenantsUsers.value[tenant_id]) return;
+
+    loadingUsers.value[tenant_id] = true;
+
+    try {
+        const res = await axios.get(route("admin.tenants.users", tenant_id));
+        tenantsUsers.value[tenant_id] = res.data.users || [];
+    } catch (e) {
+        tenantsUsers.value[tenant_id] = [];
+        console.error(e);
+    } finally {
+        loadingUsers.value[tenant_id] = false;
+    }
+};
+
+// Helpers de UI
 const getStatusIcon = (status) => {
     switch (status) {
         case "active":
@@ -139,6 +190,7 @@ const getStatusColor = (status) => {
     }
 };
 
+// Lógica del modal de token
 const closeTokenModal = () => {
     showTokenModal.value = false;
     apiToken.value = null;
@@ -157,6 +209,54 @@ const copyToken = async () => {
 </script>
 
 <template>
+    <Teleport to="body">
+        <Transition
+            enter-active-class="transform ease-out duration-300 transition"
+            enter-from-class="translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
+            enter-to-class="translate-y-0 opacity-100 sm:translate-x-0"
+            leave-active-class="transition ease-in duration-100"
+            leave-from-class="opacity-100"
+            leave-to-class="opacity-0"
+        >
+            <div
+                v-if="toast.show"
+                class="fixed top-5 right-5 z-[100] max-w-sm w-full"
+            >
+                <div
+                    class="rounded-lg shadow-xl px-4 py-3 border flex items-start gap-3"
+                    :class="
+                        toast.type === 'success'
+                            ? 'bg-white border-green-500 text-green-800'
+                            : 'bg-white border-red-500 text-red-800'
+                    "
+                >
+                    <div class="mt-0.5 shrink-0">
+                        <font-awesome-icon
+                            :icon="toast.type === 'success' ? faCheck : faTimes"
+                            :class="
+                                toast.type === 'success'
+                                    ? 'text-green-500'
+                                    : 'text-red-500'
+                            "
+                        />
+                    </div>
+
+                    <div class="text-sm font-semibold">
+                        {{ toast.message }}
+                    </div>
+
+                    <button
+                        type="button"
+                        class="ml-auto text-gray-400 hover:text-gray-600"
+                        @click="toast.show = false"
+                    >
+                        ✕
+                    </button>
+                </div>
+            </div>
+        </Transition>
+    </Teleport>
+
     <div class="min-h-screen bg-gray-50 py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <!-- Header -->
@@ -237,53 +337,6 @@ const copyToken = async () => {
                         <Button type="button" @click="copyToken">{{
                             copySuccess ? "Copiado" : "Copiar token"
                         }}</Button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Flash Messages -->
-            <div
-                v-if="page?.props?.flash?.success"
-                class="bg-green-50 border border-green-200 rounded-lg p-4 mb-8"
-            >
-                <div class="flex">
-                    <div class="shrink-0">
-                        <font-awesome-icon
-                            :icon="faCheck"
-                            class="h-5 w-5 text-green-400"
-                        />
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-green-800">
-                            {{ page.props.flash.success }}
-                        </p>
-                        <div
-                            v-if="
-                                page.props.flash.success.includes(
-                                    'credenciales'
-                                )
-                            "
-                            class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded"
-                        >
-                            <p class="text-sm text-blue-800 font-medium">
-                                Credenciales de acceso generadas:
-                            </p>
-                            <p class="text-sm text-blue-700 mt-1">
-                                <strong>Email:</strong> admin@{{
-                                    form.path ||
-                                    (form.name
-                                        ? form.name
-                                              .toLowerCase()
-                                              .replace(/\s+/g, "") + ".app.test"
-                                        : "path")
-                                }}<br />
-                                <strong>Password:</strong> password123
-                            </p>
-                            <p class="text-xs text-blue-600 mt-2">
-                                El tenant puede usar estas credenciales para
-                                acceder a su dashboard desde la página de login.
-                            </p>
-                        </div>
                     </div>
                 </div>
             </div>
