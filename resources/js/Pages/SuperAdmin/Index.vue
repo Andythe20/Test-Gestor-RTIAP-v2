@@ -102,6 +102,7 @@ const createUser = () => {
     });
 };
 
+// Envío del formulario de creación de tenant
 const submitForm = () => {
     form.post(route("admin.tenants.store"), {
         preserveScroll: true,
