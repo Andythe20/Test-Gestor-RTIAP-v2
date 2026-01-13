@@ -31,8 +31,15 @@ class TenantsController extends Controller
     {
         $tenants = Tenant::query()->orderByDesc('created_at')->get();
 
+        /**
+         * Si después de crear un tenant se mostró un token de API en la sesión,
+         * se pasa de forma explícita como una prop para que el cliente pueda leerlo
+         */
+        $apiToken = session('api_token');
+
         return Inertia::render('SuperAdmin/Index', [
             'tenants' => $tenants,
+            'api_token' => $apiToken,
         ]);
     }
 
@@ -87,7 +94,7 @@ class TenantsController extends Controller
                 'error' => null,
             ]);
         } catch (\Throwable $e) {
-            logger()->error('Error rendering tenant info: '.$e->getMessage(), [
+            logger()->error('Error rendering tenant info: ' . $e->getMessage(), [
                 'exception' => $e,
                 'tenant_id' => $tenant->id,
             ]);
@@ -130,17 +137,17 @@ class TenantsController extends Controller
             'path' => $path,
             'database' => $data['database'] ?? null,
             'status' => 'provisioning',
-
         ]);
 
         try {
             $provisioner->provision($tenant);
 
+            // Crea las credenciales del tenant
             $email = $data['email'] ?? null;
             $password = $data['password'] ?? 'hola123';
 
             if (! is_string($email) || trim($email) === '') {
-                $email = 'admin@'.$tenant->path.'.cl';
+                $email = 'admin@' . $tenant->path . '.cl';
             }
             if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 if ($request->expectsJson()) {
@@ -150,7 +157,7 @@ class TenantsController extends Controller
                 return redirect()->back()->with('error', 'Email inválido');
             }
 
-            User::create([
+            $user = User::create([
                 'name' => $tenant->name,
                 'email' => $email,
                 'password' => $password,
@@ -159,13 +166,16 @@ class TenantsController extends Controller
                 'database' => $tenant->database,
             ]);
 
-            if ($request->expectsJson()) { // Para pruebas
-                return response()->json($tenant->fresh(), 201);
+            // Crea el Token del tenant y lo muestra 1 sola vez.
+            $token = $tenant->generateApiToken();
+
+            if ($request->expectsJson()) {
+                return response()->json(['tenant' => $tenant->fresh(), 'api_token' => $token, 'user' => $user], 201);
             }
 
             return redirect()->route('admin.home')
-                ->with('success', 'Tenant creado exitosamente. Base de datos provisionada y credenciales de acceso generadas.'); // Para Front
-
+                ->with('success', 'Tenant creado exitosamente. Base de datos provisionada, credenciales y token generados.')
+                ->with('api_token', $token);
         } catch (\Throwable $e) {
             $tenant->forceFill(['status' => 'failed'])->save();
 
@@ -174,7 +184,7 @@ class TenantsController extends Controller
             }
 
             return redirect()->route('admin.home')
-                ->with('error', 'Error al crear tenant: '.$e->getMessage());
+                ->with('error', 'Error al crear tenant: ' . $e->getMessage());
         }
     }
 
@@ -241,7 +251,7 @@ class TenantsController extends Controller
             return redirect()->route('admin.tenants.show', $tenant->id)
                 ->with('success', 'Datos de ejemplo insertados en el tenant.');
         } catch (\Throwable $e) {
-            logger()->error('Error seeding tenant demo data: '.$e->getMessage(), [
+            logger()->error('Error seeding tenant demo data: ' . $e->getMessage(), [
                 'exception' => $e,
                 'tenant_id' => $tenant->id,
             ]);
@@ -249,7 +259,7 @@ class TenantsController extends Controller
             $tenant->forceFill(['error_message' => $e->getMessage()])->save();
 
             return redirect()->route('admin.tenants.show', $tenant->id)
-                ->with('error', 'Error al insertar datos de ejemplo: '.$e->getMessage());
+                ->with('error', 'Error al insertar datos de ejemplo: ' . $e->getMessage());
         } finally {
             try {
                 $tenant->forgetCurrent();
