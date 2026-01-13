@@ -120,7 +120,6 @@ class TenantsController extends Controller
             'name' => ['required', 'string'],
             'path' => ['nullable', 'string', 'unique:tenants,path'],
             'database' => ['nullable', 'string', 'unique:tenants,database'],
-            'api_only' => ['nullable', 'boolean'], // Nuevo campo para indicar si es solo API
         ]);
 
         $name = trim($data['name']);
@@ -131,59 +130,45 @@ class TenantsController extends Controller
             'path' => $path,
             'database' => $data['database'] ?? null,
             'status' => 'provisioning',
-
         ]);
 
         try {
             $provisioner->provision($tenant);
 
+            // Crea las credenciales del tenant
             $email = $data['email'] ?? null;
             $password = $data['password'] ?? 'hola123';
-            $apiOnly = $request->boolean('api_only'); // Obtener el valor de api_only
 
-            // If not API-only, create the default tenant user
-            if (! $apiOnly) {
-                if (! is_string($email) || trim($email) === '') {
-                    $email = 'admin@' . $tenant->path . '.cl';
-                }
-                if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                    if ($request->expectsJson()) {
-                        return response()->json(['message' => 'Email inválido'], 422);
-                    }
-
-                    return redirect()->back()->with('error', 'Email inválido');
-                }
-
-                User::create([
-                    'name' => $tenant->name,
-                    'email' => $email,
-                    'password' => $password,
-                    'role' => 'tenant',
-                    'tenant_id' => $tenant->id,
-                    'database' => $tenant->database,
-                ]);
+            if (! is_string($email) || trim($email) === '') {
+                $email = 'admin@' . $tenant->path . '.cl';
             }
-
-            // If API-only, generate an API token and return it (only shown once)
-            if ($apiOnly) {
-                $token = $tenant->generateApiToken();
-
+            if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 if ($request->expectsJson()) {
-                    return response()->json(['tenant' => $tenant->fresh(), 'api_token' => $token], 201);
+                    return response()->json(['message' => 'Email inválido'], 422);
                 }
 
-                return redirect()->route('admin.home')
-                    ->with('success', 'Tenant creado exitosamente. Base de datos provisionada (API-only).')
-                    ->with('api_token', $token);
+                return redirect()->back()->with('error', 'Email inválido');
             }
 
-            if ($request->expectsJson()) { // Para pruebas
-                return response()->json($tenant->fresh(), 201);
+            $user = User::create([
+                'name' => $tenant->name,
+                'email' => $email,
+                'password' => $password,
+                'role' => 'tenant',
+                'tenant_id' => $tenant->id,
+                'database' => $tenant->database,
+            ]);
+
+            // Crea el Token del tenant y lo muestra 1 sola vez.
+            $token = $tenant->generateApiToken();
+
+            if ($request->expectsJson()) {
+                return response()->json(['tenant' => $tenant->fresh(), 'api_token' => $token, 'user' => $user], 201);
             }
 
             return redirect()->route('admin.home')
-                ->with('success', 'Tenant creado exitosamente. Base de datos provisionada y credenciales de acceso generadas.'); // Para Front
-
+                ->with('success', 'Tenant creado exitosamente. Base de datos provisionada, credenciales y token generados.')
+                ->with('api_token', $token);
         } catch (\Throwable $e) {
             $tenant->forceFill(['status' => 'failed'])->save();
 

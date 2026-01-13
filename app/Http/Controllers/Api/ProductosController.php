@@ -40,7 +40,7 @@ class ProductosController extends Controller
     /**
      * Muestra los detalles de un producto especifico por id.
      */
-    public function show(Request $id)
+    public function show(Request $request, $path, $id)
     {
         $producto = Producto::on('tenant')->find($id);
 

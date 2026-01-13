@@ -45,7 +45,26 @@ class TenantApiAuth
         }
 
         // Si todo es correcto, se establece el tenant actual usando makeCurrent()
+        // Se descifra la contraseña de la base de datos y se configura la conexion
         try {
+            $decrypted = $tenant->getDecryptedDbPassword();
+
+            if (empty($tenant->database) || empty($tenant->db_username) || empty($decrypted)) {
+                Log::error('Tenant DB credentials missing for API request', ['tenant_id' => $tenant->id]);
+                return response()->json(['message' => 'Tenant DB credentials incomplete'], 500);
+            }
+
+            $base = config('database.connections.tenant');
+
+            config(['database.connections.tenant' => array_merge($base, [
+                'database' => $tenant->database,
+                'username' => $tenant->db_username,
+                'password' => $decrypted,
+            ])]);
+
+            \Illuminate\Support\Facades\DB::purge('tenant');
+            \Illuminate\Support\Facades\DB::reconnect('tenant');
+
             $tenant->makeCurrent();
         } catch (\Throwable $e) {
             Log::error('Failed to make tenant current in API middleware: ' . $e->getMessage(), ['tenant_id' => $tenant->id]);
