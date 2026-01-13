@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant.context' => \App\Http\Middleware\TenantContext::class,
             'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
             'admin.token' => \App\Http\Middleware\EnsureAdminToken::class,
+            'tenant.api' => \App\Http\Middleware\TenantApiAuth::class,
         ]);
 
         // Ensure the XSRF-TOKEN cookie is not encrypted so client-side code
