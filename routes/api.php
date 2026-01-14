@@ -14,11 +14,11 @@ use Illuminate\Support\Facades\Route;
  */
 Route::middleware([EnsureAdminToken::class])->group(function () {
     Route::post('/admin/tenants', [TenantsController::class, 'store']);
-    Route::get('/admin/tenants', [TenantsController::class, 'index']);
+    Route::get('/admin/tenants', [TenantsController::class, 'index']); // obtener lista de tenants
     Route::post('/admin/users', [UsersController::class, 'store']);
     Route::get('/admin/tenants/{tenant:path}/users', [TenantsController::class, 'users']); // para obtener usuarios de un tenant
-    Route::get('/admin/tenants/{tenant}', [TenantsController::class, 'show']);
-    Route::post('/admin/tenants/{tenant}/seed', [TenantsController::class, 'seed']);
+    Route::get('/admin/tenants/{tenant:path}', [TenantsController::class, 'show']); // obtener info de un tenant
+    Route::post('/admin/tenants/{tenant:path}/seed', [TenantsController::class, 'seed']);
 });
 
 /**

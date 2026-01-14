@@ -38,14 +38,15 @@ class AuthController extends Controller
                 'expects_json' => $request->expectsJson() || $request->wantsJson(),
             ]);
 
-            // Handle Inertia requests separately
-            if ($request->header('X-Inertia')) {
+            // For Inertia visits return a proper Inertia response so the client
+            // can continue the SPA flow. For JSON API clients return JSON.
+            if ($this->isInertiaRequest($request)) {
                 return Inertia::render('Auth/Login', [
                     'errors' => ['email' => $message],
                 ])->toResponse($request)->setStatusCode(422);
             }
 
-            if (!$request->header('X-Inertia')) {
+            if ($request->wantsJson()) {
                 return response()->json(['errors' => ['email' => $message]], 422);
             }
 

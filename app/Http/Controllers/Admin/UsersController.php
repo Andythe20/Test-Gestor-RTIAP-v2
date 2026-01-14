@@ -41,7 +41,14 @@ class UsersController extends Controller
             'tenant_id' => $isAdmin ? null : $tenant->id,
             'database' => $isAdmin ? null : $tenant->database,
         ]);
-        if ($request->wantsJson() || ! $request->header('X-Inertia')) {
+        // If this is an Inertia form submission, return a redirect so the
+        // Inertia client receives a proper Inertia response. API clients
+        // that want JSON will receive the created user object.
+        if ($this->isInertiaRequest($request)) {
+            return redirect()->back()->with('success', 'Usuario creado correctamente.');
+        }
+
+        if ($request->wantsJson()) {
             return response()->json($user, 201);
         }
 

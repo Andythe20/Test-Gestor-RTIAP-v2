@@ -35,8 +35,17 @@ class TenantInfoController extends Controller
             'tarjetas' => $tarjetas,
         ];
 
-        // Verificar si la consulta viene de una peticion API o Web
-        if (!$request->header('X-Inertia')) {
+        // If this is an Inertia SPA navigation, use Inertia::render so the
+        // Inertia middleware returns a proper Inertia JSON payload (with headers).
+        if ($this->isInertiaRequest($request)) {
+            return Inertia::render('Tenant/Dashboard', [
+                'tenant' => $tenant,
+                'data' => $dataPayload,
+            ]);
+        }
+
+        // API clients that explicitly want JSON
+        if ($request->wantsJson()) {
             if (empty($dataPayload)) {
                 return response()->json([
                     'message' => 'No data found for tenant',
@@ -45,6 +54,7 @@ class TenantInfoController extends Controller
             return response()->json($dataPayload);
         }
 
+        // Regular full page load
         return Inertia::render('Tenant/Dashboard', [
             'tenant' => $tenant,
             'data' => $dataPayload,

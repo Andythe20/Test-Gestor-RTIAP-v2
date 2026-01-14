@@ -37,14 +37,15 @@ class TenantsController extends Controller
          */
         $apiToken = session('api_token');
 
-        // Decide response format based on Accept header (JSON clients) or normal browser
-        if (!$request->header('X-Inertia')) {
+        // If an API client explicitly wants JSON, return JSON.
+        if ($request->wantsJson()) {
             return response()->json([
                 'tenants' => $tenants,
                 'api_token' => $apiToken,
             ]);
         }
 
+        // For Inertia visits and regular browser loads, render the Inertia page.
         return Inertia::render('SuperAdmin/Index', [
             'tenants' => $tenants,
             'api_token' => $apiToken,
@@ -56,9 +57,16 @@ class TenantsController extends Controller
         try {
             $decryptedPassword = $tenant->getDecryptedDbPassword();
 
-            if (empty($tenant->database) || empty($tenant->db_username) || empty($decryptedPassword)) {
-                throw new \RuntimeException('Tenant database credentials are missing or incomplete.');
+            if ($request->wantsJson()) {
+                if (empty($tenant->database) || empty($tenant->db_username) || empty($decryptedPassword)) {
+                    return response()->json(['message' => 'Tenant database credentials are missing or incomplete.'], 500);
+                }
+            } else {
+                if (empty($tenant->database) || empty($tenant->db_username) || empty($decryptedPassword)) {
+                    throw new \RuntimeException('Credenciales de base de datos del tenant faltantes o incompletas.');
+                }
             }
+
             $base = config('database.connections.tenant');
 
             config(['database.connections.tenant' => array_merge($base, [
@@ -96,12 +104,12 @@ class TenantsController extends Controller
                 'error' => null,
             ];
 
-            // Para peticiones API (clients que esperan JSON)
-            if (!$request->header('X-Inertia')) {
+            // For API clients that explicitly want JSON, return JSON payload.
+            if ($request->wantsJson()) {
                 return response()->json($dataPayload);
             }
 
-            // Petición desde navegador / Inertia
+            // For Inertia visits and normal browser loads, render the Inertia page
             return Inertia::render('SuperAdmin/TenantInfo', $dataPayload);
         } catch (\Throwable $e) {
 
@@ -130,7 +138,7 @@ class TenantsController extends Controller
                 'estadisticas' => []
             ];
 
-            if (!$request->header('X-Inertia')) {
+            if ($request->wantsJson()) {
                 return response()->json($errorPayload);
             }
 
@@ -145,7 +153,7 @@ class TenantsController extends Controller
     public function store(Request $request, TenantProvisioner $provisioner)
     {
         // For API clients we want JSON validation errors instead of redirects.
-        if (!$request->header('X-Inertia')) {
+        if ($request->wantsJson()) {
             $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
                 'name' => ['required', 'string'],
                 'path' => ['nullable', 'string', 'unique:tenants,path'],
@@ -205,8 +213,8 @@ class TenantsController extends Controller
             // Crea el Token del tenant y lo muestra 1 sola vez.
             $token = $tenant->generateApiToken();
 
-            // If the client expects JSON (API client) return JSON, otherwise render Inertia
-            if (!$request->header('X-Inertia')) {
+            // If the client explicitly wants JSON return JSON, otherwise redirect
+            if ($request->wantsJson()) {
                 return response()->json([
                     'message' => 'Tenant creado exitosamente',
                     'tenant' => $tenant->fresh(),
@@ -221,7 +229,7 @@ class TenantsController extends Controller
         } catch (\Throwable $e) {
             $tenant->forceFill(['status' => 'failed'])->save();
 
-            if (!$request->header('X-Inertia')) {
+            if ($request->wantsJson()) {
                 return response()->json(['message' => $e->getMessage()], 500);
             }
 
@@ -238,7 +246,8 @@ class TenantsController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
-        if (!$request->header('X-Inertia')) {
+
+        if ($request->wantsJson()) {
             if ($users->isEmpty()) {
                 return response()->json(['message' => 'No se encontraron usuarios para este tenant'], 404);
             }
