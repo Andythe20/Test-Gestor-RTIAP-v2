@@ -134,10 +134,11 @@ const submitForm = () => {
                     page.props.flash.api_token) ||
                 null;
 
-            console.log("resolved token", token);
             if (token) {
                 apiToken.value = token;
                 showTokenModal.value = true;
+            } else {
+                console.warn("API token no disponible en la respuesta.");
             }
         },
     });

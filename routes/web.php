@@ -11,7 +11,7 @@ use App\Models\Tenant;
 use App\Models\Venta;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', fn () => redirect()->route('login'));
+Route::get('/', fn() => redirect()->route('login'));
 
 /*
     AUTH PARA LOGIN
@@ -42,9 +42,8 @@ Route::prefix('admin')
         Route::post('/tenants/{tenant:id}/seed', [TenantsController::class, 'seed'])->name('admin.tenants.seed');
 
         // Ver usuarios de c/ tenant
-        Route::get('/admin/tenants/{tenant}/users', [TenantsController::class, 'users'])
+        Route::get('/tenants/{tenant}/users', [TenantsController::class, 'users'])
             ->name('admin.tenants.users');
-
     });
 
 /*

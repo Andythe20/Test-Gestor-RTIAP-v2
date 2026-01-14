@@ -27,7 +27,7 @@ class TenantsController extends Controller
         return response()->json($tenants);
     }
 
-    public function showAdminView()
+    public function showAdminView(Request $request)
     {
         $tenants = Tenant::query()->orderByDesc('created_at')->get();
 
@@ -37,13 +37,21 @@ class TenantsController extends Controller
          */
         $apiToken = session('api_token');
 
+        // Decide response format based on Accept header (JSON clients) or normal browser
+        if ($request->header('X-Inertia')) {
+            return response()->json([
+                'tenants' => $tenants,
+                'api_token' => $apiToken,
+            ]);
+        }
+
         return Inertia::render('SuperAdmin/Index', [
             'tenants' => $tenants,
             'api_token' => $apiToken,
         ]);
     }
 
-    public function show(Tenant $tenant)
+    public function show(Request $request, Tenant $tenant)
     {
         try {
             $decryptedPassword = $tenant->getDecryptedDbPassword();
@@ -63,57 +71,70 @@ class TenantsController extends Controller
             DB::reconnect('tenant');
 
             $tenant->makeCurrent();
-            $empresa = Empresa::on('tenant')->first();
-            $sucursales = Sucursal::on('tenant')->get();
-            // New: fetch core tenant data entities to display in the admin view
-            $empleadosList = Empleado::query()->orderByDesc('created_at')->limit(10)->get();
-            $productosList = Producto::query()->orderByDesc('created_at')->limit(10)->get();
-            $tarjetasList = Tarjeta::query()->orderByDesc('created_at')->limit(10)->get();
-            $ventasList = Venta::query()
-                ->with(['empleado', 'producto', 'tarjeta'])
-                ->orderByDesc('created_at')
-                ->limit(10)
-                ->get();
 
-            $estadisticas = [
-                'empleados' => Empleado::on('tenant')->count(),
-                'productos' => Producto::on('tenant')->count(),
-                'ventas' => Venta::on('tenant')->count(),
-                'sucursales' => $sucursales->count(),
+            // --- EXTRACCIÓN DE DATOS ---
+            // Guardamos todo en un array para poder pasarlo a Inertia O a JSON
+
+            $dataPayload = [
+                'tenant' => $tenant,
+                'empresa' => Empresa::on('tenant')->first(),
+                'sucursales' => Sucursal::on('tenant')->get(),
+                'empleados' => Empleado::query()->orderByDesc('created_at')->limit(10)->get(),
+                'productos' => Producto::query()->orderByDesc('created_at')->limit(10)->get(),
+                'tarjetas' => Tarjeta::query()->orderByDesc('created_at')->limit(10)->get(),
+                'ventas' => Venta::query()
+                    ->with(['empleado', 'producto', 'tarjeta'])
+                    ->orderByDesc('created_at')
+                    ->limit(10)
+                    ->get(),
+                'estadisticas' => [
+                    'empleados' => Empleado::on('tenant')->count(),
+                    'productos' => Producto::on('tenant')->count(),
+                    'ventas' => Venta::on('tenant')->count(),
+                    'sucursales' => Sucursal::on('tenant')->count(), // Corregido: count() sobre el query builder o colección
+                ],
+                'error' => null,
             ];
 
-            return Inertia::render('SuperAdmin/TenantInfo', [
-                'tenant' => $tenant,
-                'empresa' => $empresa,
-                'sucursales' => $sucursales,
-                'empleados' => $empleadosList,
-                'productos' => $productosList,
-                'tarjetas' => $tarjetasList,
-                'ventas' => $ventasList,
-                'estadisticas' => $estadisticas,
-                'error' => null,
-            ]);
+            // Para peticiones API (clients que esperan JSON)
+            if ($request->header('X-Inertia')) {
+                return response()->json($dataPayload);
+            }
+
+            // Petición desde navegador / Inertia
+            return Inertia::render('SuperAdmin/TenantInfo', $dataPayload);
         } catch (\Throwable $e) {
+
+
             logger()->error('Error rendering tenant info: ' . $e->getMessage(), [
                 'exception' => $e,
                 'tenant_id' => $tenant->id,
             ]);
 
+            // Guardar mensaje de error en el tenant
             $tenant->forceFill([
                 'error_message' => $e->getMessage(),
             ])->save();
 
-            return Inertia::render('SuperAdmin/TenantInfo', [
+            // Payload de error
+            $errorPayload = [
                 'tenant' => $tenant,
+                'error' => $e->getMessage(),
+                // Enviar arrays vacíos para evitar null pointers en el frontend/movil
                 'empresa' => null,
                 'sucursales' => [],
                 'empleados' => [],
                 'productos' => [],
                 'tarjetas' => [],
                 'ventas' => [],
-                'estadisticas' => [],
-                'error' => $e->getMessage(),
-            ]);
+                'estadisticas' => []
+            ];
+
+            if ($request->header('X-Inertia')) {
+                return response()->json($errorPayload);
+            }
+
+            return Inertia::render('SuperAdmin/TenantInfo', $errorPayload);
         } finally {
             try {
             } catch (\Throwable $ignored) {
@@ -123,11 +144,26 @@ class TenantsController extends Controller
 
     public function store(Request $request, TenantProvisioner $provisioner)
     {
-        $data = $request->validate([
-            'name' => ['required', 'string'],
-            'path' => ['nullable', 'string', 'unique:tenants,path'],
-            'database' => ['nullable', 'string', 'unique:tenants,database'],
-        ]);
+        // For API clients we want JSON validation errors instead of redirects.
+        if (!$request->header('X-Inertia')) {
+            $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+                'name' => ['required', 'string'],
+                'path' => ['nullable', 'string', 'unique:tenants,path'],
+                'database' => ['nullable', 'string', 'unique:tenants,database'],
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json(['errors' => $validator->errors()], 422);
+            }
+
+            $data = $validator->validated();
+        } else {
+            $data = $request->validate([
+                'name' => ['required', 'string'],
+                'path' => ['nullable', 'string', 'unique:tenants,path'],
+                'database' => ['nullable', 'string', 'unique:tenants,database'],
+            ]);
+        }
 
         $name = trim($data['name']);
         $path = $data['path'] ?? Str::slug($name);
@@ -169,8 +205,14 @@ class TenantsController extends Controller
             // Crea el Token del tenant y lo muestra 1 sola vez.
             $token = $tenant->generateApiToken();
 
-            if ($request->expectsJson()) {
-                return response()->json(['tenant' => $tenant->fresh(), 'api_token' => $token, 'user' => $user], 201);
+            // If the client expects JSON (API client) return JSON, otherwise render Inertia
+            if (!$request->header('X-Inertia')) {
+                return response()->json([
+                    'message' => 'Tenant creado exitosamente',
+                    'tenant' => $tenant->fresh(),
+                    'api_token' => $token,
+                    'user' => $user
+                ], 201);
             }
 
             return redirect()->route('admin.home')
@@ -179,7 +221,7 @@ class TenantsController extends Controller
         } catch (\Throwable $e) {
             $tenant->forceFill(['status' => 'failed'])->save();
 
-            if ($request->expectsJson()) {
+            if (!$request->header('X-Inertia')) {
                 return response()->json(['message' => $e->getMessage()], 500);
             }
 
@@ -188,7 +230,7 @@ class TenantsController extends Controller
         }
     }
 
-    public function users(Tenant $tenant)
+    public function users(Request $request, Tenant $tenant)
     {
         $users = User::on('landlord')
             ->select('id', 'name', 'email', 'tenant_id', 'is_admin', 'created_at')
@@ -196,11 +238,19 @@ class TenantsController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
-        return response()->json([
-            'tenant_id' => $tenant->id,
-            'users' => $users,
-        ]);
+        if (!$request->header('X-Inertia')) {
+            if ($users->isEmpty()) {
+                return response()->json(['message' => 'No se encontraron usuarios para este tenant'], 404);
+            }
+            return response()->json($users);
+        }
+
+        // Fallback for browser/Inertia full page requests
+        return redirect()->route('admin.tenants.show', $tenant->id);
     }
+
+
+
 
     public function seed(Tenant $tenant)
     {

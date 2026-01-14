@@ -41,11 +41,10 @@ class UsersController extends Controller
             'tenant_id' => $isAdmin ? null : $tenant->id,
             'database' => $isAdmin ? null : $tenant->database,
         ]);
-        if ($request->expectsJson()) {
+        if ($request->wantsJson() || ! $request->header('X-Inertia')) {
             return response()->json($user, 201);
         }
 
         return redirect()->back()->with('success', 'Usuario creado correctamente.');
-
     }
 }
