@@ -38,7 +38,7 @@ class TenantsController extends Controller
         $apiToken = session('api_token');
 
         // Decide response format based on Accept header (JSON clients) or normal browser
-        if ($request->header('X-Inertia')) {
+        if (!$request->header('X-Inertia')) {
             return response()->json([
                 'tenants' => $tenants,
                 'api_token' => $apiToken,
@@ -97,7 +97,7 @@ class TenantsController extends Controller
             ];
 
             // Para peticiones API (clients que esperan JSON)
-            if ($request->header('X-Inertia')) {
+            if (!$request->header('X-Inertia')) {
                 return response()->json($dataPayload);
             }
 
@@ -130,7 +130,7 @@ class TenantsController extends Controller
                 'estadisticas' => []
             ];
 
-            if ($request->header('X-Inertia')) {
+            if (!$request->header('X-Inertia')) {
                 return response()->json($errorPayload);
             }
 

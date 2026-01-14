@@ -45,7 +45,7 @@ class AuthController extends Controller
                 ])->toResponse($request)->setStatusCode(422);
             }
 
-            if ($request->expectsJson() || $request->wantsJson()) {
+            if (!$request->header('X-Inertia')) {
                 return response()->json(['errors' => ['email' => $message]], 422);
             }
 
@@ -75,7 +75,7 @@ class AuthController extends Controller
             return redirect('/login')->withErrors(['email' => 'Tu usuario no tiene tenant asignado']);
         }
 
-        return redirect('/t/'.$user->tenant->path);
+        return redirect('/t/' . $user->tenant->path);
     }
 
     public function logout(Request $request)
