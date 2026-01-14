@@ -52,11 +52,28 @@ const props = defineProps({
 
 const emit = defineEmits(["click"]);
 
+// Determinar si el enlace es externo
 const isExternalLink = computed(() => {
-    return (
-        props.href &&
-        (props.href.startsWith("http") || props.target === "_blank")
-    );
+    // 1. Si no hay href, no es enlace
+    if (!props.href) return false;
+
+    // 2. Si tiene target="_blank", forzamos externo
+    if (props.target === "_blank") return true;
+
+    // 3. Si empieza con http, verificamos si es NUESTRO dominio
+    if (props.href.startsWith("http")) {
+        try {
+            const url = new URL(props.href);
+            // Comparamos el "origin" del link con el "origin" de la ventana actual
+            // Si son diferentes, es externo. Si son iguales, es interno.
+            return url.origin !== window.location.origin;
+        } catch (e) {
+            return true; // Si la URL es inválida, tratar como externa
+        }
+    }
+
+    // 4. Si no empieza con http (es relativa), es interno
+    return false;
 });
 
 const isInternalLink = computed(() => {
