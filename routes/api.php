@@ -3,8 +3,10 @@
 use App\Http\Controllers\Admin\TenantsController;
 use App\Http\Controllers\Admin\UsersController;
 use App\Http\Controllers\Api\ProductosController;
+use App\Http\Controllers\TenantInfoController;
 use App\Http\Middleware\EnsureAdminToken;
 use App\Http\Middleware\TenantApiAuth;
+use App\Http\Middleware\TenantContext;
 use Illuminate\Support\Facades\Route;
 
 /**
@@ -17,4 +19,12 @@ Route::middleware([EnsureAdminToken::class])->group(function () {
     Route::get('/admin/tenants/{tenant:path}/users', [TenantsController::class, 'users']); // para obtener usuarios de un tenant
     Route::get('/admin/tenants/{tenant}', [TenantsController::class, 'show']);
     Route::post('/admin/tenants/{tenant}/seed', [TenantsController::class, 'seed']);
+});
+
+/**
+ * --- TENANTS ---
+ */
+Route::middleware([TenantApiAuth::class])->group(function () {
+    // Datos de tenant
+    Route::get('/t/{tenant:path}/', [TenantInfoController::class, 'showInfo']);
 });
