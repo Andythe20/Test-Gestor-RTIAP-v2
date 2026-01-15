@@ -1,4 +1,4 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -6,6 +6,26 @@
 @source '../**/*.js';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    /* --- TIPOGRAFÍA --- */
+    --font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif,
+        "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
+        "Noto Color Emoji";
+
+    /* --- COLORES DEL MANUAL DE MARCA --- */
+    /* Al definirlos aquí con valores Hex, Tailwind v4 habilita automáticamente la opacidad (bg-primary/50) */
+
+    /* Color Primary (Base y variantes) */
+    --color-primary: #0ea5e9;
+    --color-primary-50: #f0f9ff;
+    --color-primary-600: #0284c7;
+    --color-primary-700: #0369a1;
+
+    /* Colores Semánticos */
+    --color-secondary: #f3f4f6;
+    --color-danger: #dc2626;
+    --color-success: #16a34a;
+    --color-muted: #6b7280;
+
+    /* Texto Base */
+    --color-text: #111827;
 }

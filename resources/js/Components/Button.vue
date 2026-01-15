@@ -4,153 +4,131 @@ import { Link } from "@inertiajs/vue3";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 
 const props = defineProps({
-    type: {
-        type: String,
-        default: "button",
-    },
-    href: {
-        type: String,
-        default: null,
-    },
-    target: {
-        type: String,
-        default: null,
-    },
+    // Permite pasar 'as' para forzar un tipo de renderizado si fuera necesario
+    as: { type: [String, Object], default: null },
+    type: { type: String, default: "button" },
+    href: { type: String, default: null },
+    target: { type: String, default: null }, // para enlaces externos
+    // Ahora soportamos más variantes típicas de manuales de marca
     variant: {
         type: String,
-        default: "primary", // primary, secondary
+        default: "primary",
+        validator: (value) =>
+            [
+                "primary",
+                "secondary",
+                "danger",
+                "success",
+                "outline",
+                "ghost",
+            ].includes(value),
     },
-    disabled: {
-        type: Boolean,
-        default: false,
-    },
-    processing: {
-        type: Boolean,
-        default: false,
-    },
-    icon: {
-        type: Object,
-        default: null,
-    },
-    iconOnly: {
-        type: Boolean,
-        default: false,
-    },
-    size: {
-        type: String,
-        default: "md", // sm, md, lg
-    },
-    fullWidth: {
-        type: Boolean,
-        default: false,
-    },
-    loadingLabel: {
-        type: String,
-        default: "Cargando...",
-    },
+    disabled: { type: Boolean, default: false },
+    processing: { type: Boolean, default: false },
+    icon: { type: Object, default: null },
+    iconOnly: { type: Boolean, default: false },
+    size: { type: String, default: "md" },
+    fullWidth: { type: Boolean, default: false },
+    loadingLabel: { type: String, default: "Cargando..." },
 });
 
 const emit = defineEmits(["click"]);
 
-// Determinar si el enlace es externo
+// --- LÓGICA DE URL (La que ya arreglamos) ---
 const isExternalLink = computed(() => {
-    // 1. Si no hay href, no es enlace
     if (!props.href) return false;
-
-    // 2. Si tiene target="_blank", forzamos externo
     if (props.target === "_blank") return true;
-
-    // 3. Si empieza con http, verificamos si es NUESTRO dominio
     if (props.href.startsWith("http")) {
         try {
             const url = new URL(props.href);
-            // Comparamos el "origin" del link con el "origin" de la ventana actual
-            // Si son diferentes, es externo. Si son iguales, es interno.
             return url.origin !== window.location.origin;
         } catch (e) {
-            return true; // Si la URL es inválida, tratar como externa
+            return true;
         }
     }
-
-    // 4. Si no empieza con http (es relativa), es interno
     return false;
 });
 
-const isInternalLink = computed(() => {
-    return props.href && !isExternalLink.value;
+// --- MAGIA 1: DETERMINAR EL COMPONENTE DINÁMICAMENTE ---
+// Esto elimina la necesidad de tener 3 bloques en el template
+const componentTag = computed(() => {
+    if (props.as) return props.as; // Override manual
+    if (isExternalLink.value) return "a";
+    if (props.href) return Link; // Si hay href y no es externo, es Inertia Link
+    return "button";
 });
 
+// --- MAGIA 2: MAPA DE ESTILOS (Diseño Atómico) ---
+// Fácil de editar según el manual de marca
+const variants = {
+    primary:
+        "bg-primary-600 hover:bg-primary-700 text-white focus:ring-primary-500 border border-transparent",
+    secondary:
+        "bg-white text-gray-700 hover:bg-gray-50 border border-gray-300 focus:ring-primary-500",
+    danger: "bg-red-600 hover:bg-red-700 text-white focus:ring-red-500 border border-transparent",
+    success:
+        "bg-green-600 hover:bg-green-700 text-white focus:ring-green-500 border border-transparent",
+    outline:
+        "bg-transparent border-2 border-primary-600 text-primary-600 hover:bg-primary-50 focus:ring-primary-500",
+    ghost: "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:ring-gray-500",
+};
+
+const sizes = {
+    sm: "px-3 py-1.5 text-xs",
+    md: "px-4 py-2 text-sm",
+    lg: "px-6 py-3 text-base",
+};
+
+// Clases Base (Estructura y comportamiento, no color)
 const baseClasses =
-    "rounded-lg inline-flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2";
-
-const variantClasses = computed(() => {
-    switch (props.variant) {
-        case "secondary":
-            return "bg-gray-300 hover:bg-gray-400 text-gray-800 focus:ring-gray-500";
-        case "primary":
-        default:
-            return "bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500";
-    }
-});
+    "inline-flex items-center justify-center font-medium rounded-lg shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
 
 const componentClasses = computed(() => [
     baseClasses,
-    variantClasses.value,
-    {
-        "opacity-50 cursor-not-allowed": props.disabled || props.processing,
-        "p-2": props.iconOnly,
-        "px-3 py-1.5 text-sm": !props.iconOnly && props.size === "sm",
-        "px-4 py-2 text-base": !props.iconOnly && props.size === "md",
-        "px-5 py-3 text-lg": !props.iconOnly && props.size === "lg",
-        "w-full": props.fullWidth,
-    },
+    variants[props.variant] || variants.primary, // Fallback a primary
+    sizes[props.size] || sizes.md,
+    props.fullWidth ? "w-full" : "",
+    props.iconOnly ? "!p-2" : "", // !p-2 fuerza el padding cuadrado para íconos solos
 ]);
 
-// Tamaño del spinner según el tamaño del botón
+// Spinner dinámico
 const spinnerSizeClass = computed(() => {
-    switch (props.size) {
-        case "sm":
-            return "h-3 w-3";
-        case "lg":
-            return "h-5 w-5";
-        case "md":
-        default:
-            return "h-4 w-4";
-    }
+    return props.size === "lg"
+        ? "h-5 w-5"
+        : props.size === "sm"
+        ? "h-3 w-3"
+        : "h-4 w-4";
 });
-
-// Mostrar spinner si el botón está en procesamiento
-const showSpinner = computed(() => props.processing);
 
 const handleClick = (event) => {
     if (props.disabled || props.processing) {
         event.preventDefault();
         return;
     }
-    if (!props.href) {
-        emit("click", event);
-    }
+    emit("click", event);
 };
 </script>
 
 <template>
-    <a
-        v-if="isExternalLink"
+    <component
+        :is="componentTag"
         :href="href"
-        :target="target"
+        :target="isExternalLink ? target : null"
+        :type="!href ? type : null"
         :class="componentClasses"
+        :disabled="!href && (disabled || processing)"
         @click="handleClick"
-        :aria-busy="processing"
-        :aria-disabled="disabled || processing"
     >
-        <FontAwesomeIcon v-if="icon && !showSpinner" :icon="icon" />
         <svg
-            v-if="showSpinner"
-            :class="['animate-spin text-current', spinnerSizeClass]"
-            viewBox="0 0 24 24"
-            fill="none"
+            v-if="processing"
+            :class="[
+                'animate-spin -ml-1 mr-2',
+                spinnerSizeClass,
+                { 'mr-0': iconOnly && !loadingLabel },
+            ]"
             xmlns="http://www.w3.org/2000/svg"
-            aria-hidden="true"
+            fill="none"
+            viewBox="0 0 24 24"
         >
             <circle
                 class="opacity-25"
@@ -159,95 +137,23 @@ const handleClick = (event) => {
                 r="10"
                 stroke="currentColor"
                 stroke-width="4"
-            />
+            ></circle>
             <path
                 class="opacity-75"
                 fill="currentColor"
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-            />
+            ></path>
         </svg>
-        <span v-if="!iconOnly" :class="{ 'ml-2': icon || showSpinner }">
-            <template v-if="processing && loadingLabel">{{
-                loadingLabel
-            }}</template>
-            <template v-else> <slot /> </template>
+
+        <FontAwesomeIcon
+            v-if="icon && !processing"
+            :icon="icon"
+            :class="[iconOnly ? '' : 'mr-2']"
+        />
+
+        <span v-if="!iconOnly">
+            {{ processing ? loadingLabel : "" }}
+            <slot v-if="!processing" />
         </span>
-    </a>
-    <Link
-        v-else-if="isInternalLink"
-        :href="href"
-        :class="componentClasses"
-        @click="handleClick"
-        :aria-busy="processing"
-        :aria-disabled="disabled || processing"
-    >
-        <FontAwesomeIcon v-if="icon && !showSpinner" :icon="icon" />
-        <svg
-            v-if="showSpinner"
-            :class="['animate-spin text-current', spinnerSizeClass]"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-hidden="true"
-        >
-            <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-            />
-            <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-            />
-        </svg>
-        <span v-if="!iconOnly" :class="{ 'ml-2': icon || showSpinner }">
-            <template v-if="processing && loadingLabel">{{
-                loadingLabel
-            }}</template>
-            <template v-else><slot /></template>
-        </span>
-    </Link>
-    <button
-        v-else
-        :type="type"
-        :class="componentClasses"
-        :disabled="disabled || processing"
-        @click="handleClick"
-        :aria-busy="processing"
-        :aria-disabled="disabled || processing"
-    >
-        <FontAwesomeIcon v-if="icon && !showSpinner" :icon="icon" />
-        <svg
-            v-if="showSpinner"
-            :class="['animate-spin text-current', spinnerSizeClass]"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-hidden="true"
-        >
-            <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-            />
-            <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-            />
-        </svg>
-        <span v-if="!iconOnly" :class="{ 'ml-2': icon || showSpinner }">
-            <template v-if="processing && loadingLabel">{{
-                loadingLabel
-            }}</template>
-            <template v-else><slot /></template>
-        </span>
-    </button>
+    </component>
 </template>

@@ -1,5 +1,7 @@
 <script setup>
-// Props a definir: id, label, v-model, :error, placeholder y required
+import { computed, useSlots } from "vue";
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+
 const props = defineProps({
     id: {
         type: String,
@@ -10,8 +12,12 @@ const props = defineProps({
         default: "",
     },
     modelValue: {
-        type: String,
+        type: [String, Number],
         default: "",
+    },
+    type: {
+        type: String,
+        default: "text",
     },
     error: {
         type: String,
@@ -25,71 +31,136 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
-    type: {
-        type: String,
-        default: "text",
-    },
-    customClass: {
-        type: String,
-        default: "",
+    disabled: {
+        type: Boolean,
+        default: false,
     },
     help: {
         type: String,
         default: "",
     },
+    // Prefix y Suffix pueden ser texto simple pasado por prop, o slots
     prefix: {
-        type: String,
-        default: "",
+        type: [String, Object],
+        default: null,
+    },
+    suffix: {
+        type: [String, Object],
+        default: null,
     },
     size: {
         type: String,
-        default: "md", // sm, md, lg
+        default: "md",
+        validator: (value) => ["sm", "md", "lg"].includes(value),
     },
 });
 
+// emit actualiza el prop modelValue (v-model desde una pagina)
 const emit = defineEmits(["update:modelValue"]);
+
+// slots para prefix/suffix, si se usan se activa el padding izquierdo/derecho
+const slots = useSlots();
+
+// isIcon para detectar si prefix o sufix es un objeto (icono) o texto
+const isIcon = (val) => val && typeof val === "object";
+
+// --- Logica de tamaños ---
+const sizeClasses = {
+    sm: "px-3 py-1.5 text-sm",
+    md: "px-4 py-2 text-base",
+    lg: "px-5 py-3 text-lg",
+};
+
+// --- CLASES COMPUTADAS ---
+// Detectar si hay contenido en los slots o props para ajustar el padding
+const hasPrefix = computed(() => props.prefix || slots.prefix);
+const hasSuffix = computed(() => props.suffix || slots.suffix);
+
+// Logica de clases para el input
+const inputClasses = computed(() => {
+    return [
+        "block w-full rounded-lg shadow-sm transition-colors duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed",
+        // Tamaño
+        sizeClasses[props.size] || sizeClasses.md,
+        // Bordes y Colores (Aquí usamos los tokens de tu config)
+        props.error
+            ? "border-danger text-danger placeholder-danger/50 focus:ring-danger focus:border-danger"
+            : "border-gray-300 focus:ring-primary-500 focus:border-primary-500 text-gray-900 placeholder-gray-400",
+        // Espaciado para prefix/suffix (Icons)
+        hasPrefix.value ? "pl-10" : "",
+        hasSuffix.value ? "pr-10" : "",
+    ];
+});
+
+// IDs para accesibilidad
+const helpId = computed(() => `${props.id}-help`);
+const errorId = computed(() => `${props.id}-error`);
 </script>
 
 <template>
-    <div>
-        <label :for="id" class="block text-sm font-medium text-gray-700">
-            {{ label }} <span v-if="required" class="text-red-500">*</span>
+    <div class="w-full">
+        <label
+            v-if="label"
+            :for="id"
+            class="block text-sm font-medium text-gray-700 mb-1"
+        >
+            {{ label }}
+            <span v-if="required" class="text-danger">*</span>
         </label>
 
-        <!-- Input with optional prefix adornment -->
-        <div :class="['relative', prefix ? 'mt-1' : '']">
-            <span
-                v-if="prefix"
-                class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400"
+        <div class="relative">
+            <div
+                v-if="hasPrefix"
+                class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500"
             >
-                {{ prefix }}
-            </span>
+                <slot name="prefix">
+                    <FontAwesomeIcon
+                        v-if="isIcon(prefix)"
+                        :icon="prefix"
+                        fixed-width
+                    />
+                    <span v-else>{{ prefix }}</span>
+                </slot>
+            </div>
+
             <input
                 :id="id"
                 :type="type"
                 :value="modelValue"
                 @input="$emit('update:modelValue', $event.target.value)"
                 :placeholder="placeholder"
-                :class="[
-                    'block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500',
-                    prefix ? 'pl-10' : 'mt-1',
-                    size === 'sm'
-                        ? 'px-3 py-2 text-sm'
-                        : size === 'lg'
-                        ? 'px-5 py-3 text-lg'
-                        : 'px-4 py-2 text-base',
-                    error ? 'border-red-500' : 'border-gray-300',
-                    customClass,
-                ]"
+                :class="inputClasses"
                 :required="required"
+                :disabled="disabled"
                 :aria-invalid="!!error"
+                :aria-describedby="error ? errorId : help ? helpId : null"
+                v-bind="$attrs"
             />
+
+            <div
+                v-if="hasSuffix"
+                class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-500"
+            >
+                <slot name="suffix">
+                    <FontAwesomeIcon
+                        v-if="isIcon(suffix)"
+                        :icon="suffix"
+                        fixed-width
+                    />
+                    <span v-else>{{ suffix }}</span>
+                </slot>
+            </div>
         </div>
 
-        <!-- Help or error messages -->
-        <p v-if="help && !error" class="text-gray-500 text-xs mt-1">
+        <p
+            v-if="error"
+            :id="errorId"
+            class="mt-1 text-sm text-danger animate-pulse"
+        >
+            {{ error }}
+        </p>
+        <p v-else-if="help" :id="helpId" class="mt-1 text-sm text-muted">
             {{ help }}
         </p>
-        <p v-if="error" class="text-red-600 text-sm mt-1">{{ error }}</p>
     </div>
 </template>

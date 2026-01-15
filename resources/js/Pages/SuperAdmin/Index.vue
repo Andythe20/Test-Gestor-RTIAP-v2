@@ -279,20 +279,20 @@ const copyToken = async () => {
                             dedicadas
                         </p>
                     </div>
-                    <Button @click="logout" variant="secondary">
+                    <Button @click="logout" variant="secondary" size="lg">
                         Logout
                     </Button>
                     <Button
                         @click="showCreateForm = !showCreateForm"
-                        class="ml-4"
+                        size="lg"
                         :icon="faPlus"
                     >
                         Nuevo Tenant
                     </Button>
                     <Button
                         @click="showCreateUserForm = !showCreateUserForm"
-                        class="ml-4"
                         :icon="faPlus"
+                        size="lg"
                     >
                         Nuevo Usuario
                     </Button>
@@ -653,10 +653,17 @@ const copyToken = async () => {
                             type="button"
                             variant="secondary"
                             @click="showCreateUserForm = false"
+                            size="md"
                         >
                             Cancelar
                         </Button>
-                        <Button type="button" @click="createUser">
+                        <Button
+                            type="button"
+                            @click="createUser"
+                            size="md"
+                            :processing="form.processing"
+                            loadindLabel="Creando Usuario..."
+                        >
                             Crear Usuario
                         </Button>
                     </div>
